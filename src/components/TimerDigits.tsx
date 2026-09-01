@@ -152,7 +152,7 @@ export const TimerDigits = memo(function TimerDigits({
   return (
     <div
       className={[
-        "flex items-start justify-center gap-[0.14em] sm:gap-[0.26em]",
+        "flex items-center justify-center gap-[0.14em] sm:gap-[0.26em]",
         sizeClass,
         glitching ? "glitching" : "",
       ].join(" ")}

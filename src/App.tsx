@@ -359,16 +359,9 @@ export default function App() {
                 {chip.text}
               </button>
 
-              {/* сам таймер — нажатие открывает меню выбора даты */}
+              {/* сам таймер — неинтерактивный, дата меняется кнопкой ниже */}
               <div className="relative">
-                <button
-                  onClick={() => setMenuOpen((v) => !v)}
-                  className={[
-                    "group block cursor-pointer rounded-xl px-2 py-2 transition-transform duration-300 sm:px-6",
-                    phase === "finished" ? "" : "hover:scale-[1.015] active:scale-[0.995]",
-                  ].join(" ")}
-                  aria-label="Открыть меню выбора конечной даты"
-                >
+                <div className="block rounded-xl px-2 py-2 sm:px-6">
                   {phase === "finished" ? (
                     <div className="flex flex-col items-center gap-4">
                       <span className="pulse-ring glitch-hard flex items-center gap-3 rounded-full border border-alarm/40 bg-alarm/10 px-6 py-2.5">
@@ -402,8 +395,7 @@ export default function App() {
                       sizeClass={sizeFor(unitCount)}
                     />
                   )}
-                  <span className="pointer-events-none absolute inset-x-8 -bottom-1 h-px bg-gradient-to-r from-transparent via-ember/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                </button>
+                </div>
               </div>
 
               {/* строка под таймером */}
