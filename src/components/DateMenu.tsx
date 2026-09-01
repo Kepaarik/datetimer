@@ -166,7 +166,7 @@ export function DateMenu({
             role="dialog"
             aria-modal="true"
             aria-label="Выбор конечной даты"
-            className="absolute left-1/2 top-full z-40 mt-6 w-[min(92vw,400px)] -translate-x-1/2"
+            className="z-40 w-[min(92vw,400px)] max-sm:fixed max-sm:inset-x-0 max-sm:top-1/2 max-sm:mx-auto max-sm:-translate-y-1/2 sm:absolute sm:left-1/2 sm:top-full sm:mt-6 sm:-translate-x-1/2"
             initial={{ opacity: 0, y: -14, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.98 }}
