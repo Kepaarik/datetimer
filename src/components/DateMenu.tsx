@@ -6,7 +6,6 @@ import {
   fromInputs,
   nextNewYear,
   toInputDate,
-  toInputTime,
 } from "../lib/time";
 
 interface Preset {
@@ -134,17 +133,24 @@ export function DateMenu({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
+  const draft = fromInputs(date, time);
+  const preview = useMemo(() => {
+    if (draft === null) return null;
+    const diff = draft - Date.now();
+    if (diff <= 0) return { ok: false, text: "это время уже прошло" };
+    return { ok: true, text: `останется ${formatDuration(diff)}` };
+  }, [draft, date, time]);
+
   const submit = () => {
-    const ts = fromInputs(date, time);
-    if (ts === null) {
+    if (draft === null) {
       setError("Укажите дату — без неё никак.");
       return;
     }
-    if (ts <= Date.now()) {
+    if (draft <= Date.now()) {
       setError("Это время уже прошло — выберите дату в будущем.");
       return;
     }
-    onSet(ts);
+    onSet(draft);
   };
 
   return (
@@ -153,161 +159,177 @@ export function DateMenu({
         <>
           <motion.div
             key="menu-backdrop"
-            className="fixed inset-0 z-30"
+            className="fixed inset-0 z-30 bg-abyss/70 backdrop-blur-[3px]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
           />
-          <motion.div
-            key="menu-panel"
-            ref={panelRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Выбор конечной даты"
-            className="z-40 w-[min(92vw,400px)] max-sm:fixed max-sm:inset-x-0 max-sm:top-1/2 max-sm:mx-auto max-sm:-translate-y-1/2 sm:absolute sm:left-1/2 sm:top-full sm:mt-6 sm:-translate-x-1/2"
-            initial={{ opacity: 0, y: -14, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.98 }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="max-h-[min(66vh,600px)] overflow-y-auto overflow-x-hidden rounded-lg border border-line bg-panel/95 shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-sm">
-              <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
-                <div className="flex items-center gap-2.5">
-                  <svg viewBox="0 0 24 24" className="h-4 w-4 text-ember" {...stroke}>
-                    <rect x="3.5" y="5" width="17" height="15.5" rx="2" />
-                    <path d="M3.5 9.5h17M8 2.8V6M16 2.8V6M8 13.5h2M14 13.5h2M8 17h2" />
-                  </svg>
-                  <span className="font-display text-[11px] font-medium tracking-[0.18em] text-ink uppercase">
-                    До какой даты считаем?
-                  </span>
-                </div>
-                <button
-                  onClick={onClose}
-                  aria-label="Закрыть меню"
-                  className="btn-ghost -mr-1.5 rounded-md border border-transparent p-1.5 text-fog hover:text-ink"
-                >
-                  <svg viewBox="0 0 24 24" className="h-4 w-4" {...stroke}>
-                    <path d="m6 6 12 12M18 6 6 18" />
-                  </svg>
-                </button>
-              </div>
-
-              {currentTarget && (
-                <div className="flex items-center justify-between gap-3 border-b border-line bg-deep px-5 py-3">
-                  <div className="min-w-0">
-                    <div className="font-mono text-[10px] tracking-[0.18em] text-dim uppercase">
-                      Текущая цель
-                    </div>
-                    <div className="truncate text-sm font-medium text-lagoon">
-                      {formatTarget(currentTarget)}
-                    </div>
+          <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center p-4">
+            <motion.div
+              key="menu-panel"
+              ref={panelRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Выбор конечной даты"
+              className="pointer-events-auto w-[min(92vw,420px)]"
+              initial={{ opacity: 0, y: 16, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.97 }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="max-h-[min(82vh,620px)] overflow-y-auto overflow-x-hidden rounded-lg border border-linehi/60 bg-panel/95 shadow-[0_30px_80px_rgba(0,0,0,0.6),0_0_0_1px_rgba(0,0,0,0.4)] backdrop-blur-sm">
+                <div className="h-px bg-gradient-to-r from-transparent via-lagoon/70 to-transparent" />
+                <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <svg viewBox="0 0 24 24" className="h-4 w-4 text-ember" {...stroke}>
+                      <rect x="3.5" y="5" width="17" height="15.5" rx="2" />
+                      <path d="M3.5 9.5h17M8 2.8V6M16 2.8V6M8 13.5h2M14 13.5h2M8 17h2" />
+                    </svg>
+                    <span className="font-display text-[11px] font-medium tracking-[0.18em] text-ink uppercase">
+                      До какой даты считаем?
+                    </span>
                   </div>
                   <button
-                    onClick={() => {
-                      onReset();
-                    }}
-                    className="btn-ghost shrink-0 rounded-md border border-line px-3 py-1.5 font-mono text-[11px] tracking-wider text-fog uppercase hover:text-alarm"
+                    onClick={onClose}
+                    aria-label="Закрыть меню"
+                    className="btn-ghost -mr-1.5 rounded-md border border-transparent p-1.5 text-fog hover:text-ink"
                   >
-                    Сбросить
-                  </button>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-2 p-4 sm:grid-cols-3">
-                {PRESETS.map((p) => (
-                  <button
-                    key={p.label}
-                    onClick={() => onSet(p.get())}
-                    className="preset-btn flex flex-col items-start gap-1.5 rounded-md border border-line bg-deep px-3 py-2.5 text-left"
-                  >
-                    <span className="flex w-full items-center justify-between text-ember">
-                      {p.icon}
-                      <svg viewBox="0 0 24 24" className="h-3 w-3 text-dim" {...stroke}>
-                        <path d="M7 17 17 7M9 7h8v8" />
-                      </svg>
-                    </span>
-                    <span className="text-[13px] leading-tight font-semibold text-ink">
-                      {p.label}
-                    </span>
-                    <span className="text-[10.5px] leading-tight text-dim">
-                      {p.hint}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="border-t border-line px-4 py-4">
-                <div className="mb-2.5 flex items-center gap-2">
-                  <span className="h-px flex-1 bg-line" />
-                  <span className="font-mono text-[10px] tracking-[0.22em] text-dim uppercase">
-                    Своя дата и время
-                  </span>
-                  <span className="h-px flex-1 bg-line" />
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="date"
-                    value={date}
-                    min={toInputDate(Date.now())}
-                    onChange={(e) => {
-                      setDate(e.target.value);
-                      setError(null);
-                    }}
-                    aria-label="Конечная дата"
-                    className="min-w-0 flex-1 rounded-md border border-line bg-deep px-3 py-2 font-mono text-[13px] text-ink outline-none transition-colors focus:border-flare/70"
-                  />
-                  <input
-                    type="time"
-                    value={time}
-                    onChange={(e) => {
-                      setTime(e.target.value);
-                      setError(null);
-                    }}
-                    aria-label="Конечное время"
-                    className="w-[104px] shrink-0 rounded-md border border-line bg-deep px-3 py-2 font-mono text-[13px] text-ink outline-none transition-colors focus:border-flare/70"
-                  />
-                </div>
-
-                {error && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-2 flex items-center gap-1.5 text-[12px] text-alarm"
-                  >
-                    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0" {...stroke}>
-                      <circle cx="12" cy="12" r="9" />
-                      <path d="M12 7.5V13M12 16.4v.1" />
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" {...stroke}>
+                      <path d="m6 6 12 12M18 6 6 18" />
                     </svg>
-                    {error}
-                  </motion.p>
-                )}
-
-                <button
-                  onClick={submit}
-                  className="btn-ghost mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-flare/50 bg-flare/15 px-4 py-2.5 font-display text-[12px] font-semibold tracking-[0.14em] text-ember uppercase"
-                >
-                  <svg viewBox="0 0 24 24" className="h-4 w-4" {...stroke}>
-                    <path d="M12 21a9 9 0 1 1 9-9" />
-                    <path d="M12 7v5l3 2M21 3l-4 4M17 3h4v4" />
-                  </svg>
-                  Запустить отсчёт
-                </button>
+                  </button>
+                </div>
 
                 {currentTarget && (
-                  <p className="mt-2.5 text-center font-mono text-[11px] text-dim">
-                    останется{" "}
-                    <span className="text-fog">
-                      {formatDuration(currentTarget - Date.now())}
-                    </span>
-                  </p>
+                  <div className="flex items-center justify-between gap-3 border-b border-line bg-deep px-5 py-3">
+                    <div className="min-w-0">
+                      <div className="font-mono text-[10px] tracking-[0.18em] text-dim uppercase">
+                        Текущая цель
+                      </div>
+                      <div className="truncate text-sm font-medium text-lagoon">
+                        {formatTarget(currentTarget)}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        onReset();
+                      }}
+                      className="btn-ghost shrink-0 rounded-md border border-line px-3 py-1.5 font-mono text-[11px] tracking-wider text-fog uppercase hover:text-alarm"
+                    >
+                      Сбросить
+                    </button>
+                  </div>
                 )}
+
+                <div className="grid grid-cols-2 gap-2 p-4 sm:grid-cols-3">
+                  {PRESETS.map((p) => (
+                    <button
+                      key={p.label}
+                      onClick={() => onSet(p.get())}
+                      className="preset-btn flex flex-col items-start gap-1.5 rounded-md border border-line bg-deep px-3 py-2.5 text-left"
+                    >
+                      <span className="flex w-full items-center justify-between text-ember">
+                        {p.icon}
+                        <svg viewBox="0 0 24 24" className="h-3 w-3 text-dim" {...stroke}>
+                          <path d="M7 17 17 7M9 7h8v8" />
+                        </svg>
+                      </span>
+                      <span className="text-[13px] leading-tight font-semibold text-ink">
+                        {p.label}
+                      </span>
+                      <span className="text-[10.5px] leading-tight text-dim">
+                        {p.hint}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="border-t border-line px-4 py-4">
+                  <div className="mb-2.5 flex items-center gap-2">
+                    <span className="h-px flex-1 bg-line" />
+                    <span className="font-mono text-[10px] tracking-[0.22em] text-dim uppercase">
+                      Своя дата и время
+                    </span>
+                    <span className="h-px flex-1 bg-line" />
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      value={date}
+                      min={toInputDate(Date.now())}
+                      onChange={(e) => {
+                        setDate(e.target.value);
+                        setError(null);
+                      }}
+                      aria-label="Конечная дата"
+                      className="min-w-0 flex-1 rounded-md border border-line bg-deep px-3 py-2 font-mono text-[13px] text-ink outline-none transition-colors focus:border-flare/70"
+                    />
+                    <input
+                      type="time"
+                      value={time}
+                      onChange={(e) => {
+                        setTime(e.target.value);
+                        setError(null);
+                      }}
+                      aria-label="Конечное время"
+                      className="w-[104px] shrink-0 rounded-md border border-line bg-deep px-3 py-2 font-mono text-[13px] text-ink outline-none transition-colors focus:border-flare/70"
+                    />
+                  </div>
+
+                  {/* живой предпросмотр длительности */}
+                  <div className="mt-2 flex h-5 items-center gap-2 font-mono text-[11px] tracking-[0.06em]">
+                    <svg viewBox="0 0 24 24" className="h-3 w-3 shrink-0 text-dim" {...stroke}>
+                      <path d="M4 12h14M13 6l6 6-6 6" />
+                    </svg>
+                    {preview ? (
+                      preview.ok ? (
+                        <span className="text-lagoon">{preview.text}</span>
+                      ) : (
+                        <span className="text-alarm">{preview.text}</span>
+                      )
+                    ) : (
+                      <span className="text-dim">укажите дату — покажем, сколько осталось</span>
+                    )}
+                  </div>
+
+                  {error && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-1.5 flex items-center gap-1.5 text-[12px] text-alarm"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0" {...stroke}>
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M12 7.5V13M12 16.4v.1" />
+                      </svg>
+                      {error}
+                    </motion.p>
+                  )}
+
+                  <button
+                    onClick={submit}
+                    className="btn-ghost mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-flare/50 bg-flare/15 px-4 py-2.5 font-display text-[12px] font-semibold tracking-[0.14em] text-ember uppercase"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" {...stroke}>
+                      <path d="M12 21a9 9 0 1 1 9-9" />
+                      <path d="M12 7v5l3 2M21 3l-4 4M17 3h4v4" />
+                    </svg>
+                    Запустить отсчёт
+                  </button>
+
+                  {currentTarget && draft !== null && draft > Date.now() && (
+                    <p className="mt-2.5 text-center font-mono text-[11px] text-dim">
+                      новая цель заменит текущую
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="pointer-events-none mx-auto -mt-px h-2 w-24 rounded-b-full bg-flare/25 blur-md" />
-          </motion.div>
+              <div className="pointer-events-none mx-auto -mt-px h-2 w-24 rounded-b-full bg-flare/25 blur-md" />
+            </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>

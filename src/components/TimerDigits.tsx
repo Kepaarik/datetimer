@@ -81,7 +81,7 @@ export function Colon({ alarm }: { alarm?: boolean }) {
     <span
       className={[
         "colon-blink font-display pb-[0.4em] text-[0.5em] leading-none font-light",
-        alarm ? "text-alarm/60" : "text-linehi",
+        alarm ? "text-alarm/60" : "text-ember",
       ].join(" ")}
       aria-hidden="true"
     >
