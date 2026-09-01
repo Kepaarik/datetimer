@@ -167,6 +167,19 @@ body {
     0 0 70px rgba(255, 107, 94, 0.18);
 }
 
+.timer-glow-strong {
+  text-shadow:
+    0 0 12px rgba(231, 236, 241, 0.32),
+    0 0 52px rgba(63, 214, 192, 0.2),
+    0 0 120px rgba(245, 154, 35, 0.13);
+}
+
+.timer-glow-alarm-strong {
+  text-shadow:
+    0 0 16px rgba(255, 107, 94, 0.5),
+    0 0 74px rgba(255, 107, 94, 0.28);
+}
+
 .label-tick {
   animation: label-tick 1s cubic-bezier(0.22, 1.2, 0.36, 1) both;
 }
@@ -337,6 +350,11 @@ body {
   100% {
     background-position: -80% 0;
   }
+}
+
+/* ---------- range slider ---------- */
+input[type="range"] {
+  accent-color: var(--color-flare);
 }
 
 /* ---------- date & time inputs ---------- */
