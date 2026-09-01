@@ -1,4 +1,4 @@
-import { Fragment, memo } from "react";
+import { Fragment, memo, type CSSProperties } from "react";
 import {
   DAY_FORMS,
   HOUR_FORMS,
@@ -6,6 +6,8 @@ import {
   SECOND_FORMS,
   plural,
 } from "../lib/time";
+
+export type Glow = "off" | "soft" | "strong";
 
 function Digit({ char }: { char: string }) {
   return (
@@ -36,6 +38,7 @@ interface UnitProps {
   forms: [string, string, string];
   valueLabel: string;
   alarm?: boolean;
+  glow: Glow;
   tickKey?: string | number;
 }
 
@@ -46,16 +49,30 @@ export function Unit({
   forms,
   valueLabel,
   alarm,
+  glow,
   tickKey,
 }: UnitProps) {
   const word = plural(value, forms);
   const text = String(value).padStart(minDigits, "0");
+
+  const numCls = alarm
+    ? glow === "off"
+      ? "text-alarm"
+      : glow === "strong"
+        ? "text-alarm timer-glow-alarm-strong"
+        : "text-alarm timer-glow-alarm"
+    : glow === "off"
+      ? "text-ink"
+      : glow === "strong"
+        ? "text-ink timer-glow-strong"
+        : "text-ink timer-glow";
+
   return (
     <div className="group flex min-w-0 flex-col items-center gap-[0.14em] sm:gap-[0.16em]">
       <span
         className={[
           "font-display leading-none font-semibold tracking-tight tabular-nums",
-          alarm ? "text-alarm timer-glow-alarm" : "text-ink timer-glow",
+          numCls,
         ].join(" ")}
       >
         <NumberRow value={text} width={minDigits} />
@@ -97,7 +114,13 @@ interface TimerDigitsProps {
   seconds: number;
   alarm?: boolean;
   glitching?: boolean;
-  sizeClass: string;
+  glow?: Glow;
+  /** CSS-значение font-size, например min(23vw,19vh,10rem) */
+  fontSize: string;
+  fontFamily?: string;
+  letterSpacing?: string;
+  /** дополнительные классы (например opacity-60) */
+  sizeClass?: string;
 }
 
 export const TimerDigits = memo(function TimerDigits({
@@ -107,7 +130,11 @@ export const TimerDigits = memo(function TimerDigits({
   seconds,
   alarm,
   glitching,
-  sizeClass,
+  glow = "soft",
+  fontSize,
+  fontFamily,
+  letterSpacing,
+  sizeClass = "",
 }: TimerDigitsProps) {
   const units = [
     {
@@ -149,6 +176,8 @@ export const TimerDigits = memo(function TimerDigits({
       : Math.min(firstNonZero, units.length - 2);
   const visible = units.slice(start);
 
+  const style: CSSProperties = { fontSize, fontFamily, letterSpacing };
+
   return (
     <div
       className={[
@@ -156,6 +185,7 @@ export const TimerDigits = memo(function TimerDigits({
         sizeClass,
         glitching ? "glitching" : "",
       ].join(" ")}
+      style={style}
       role="timer"
       aria-live="off"
     >
@@ -168,6 +198,7 @@ export const TimerDigits = memo(function TimerDigits({
             forms={u.forms}
             valueLabel={u.valueLabel}
             alarm={alarm}
+            glow={glow}
             tickKey={u.id === "seconds" ? u.value : undefined}
           />
         </Fragment>
