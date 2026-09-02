@@ -10,6 +10,7 @@ import {
   FONTS,
   TRACKING_VALUES,
   SettingsPanel,
+  type ThemeId,
   type TimerSettings,
 } from "./components/SettingsPanel";
 import {
@@ -593,7 +594,6 @@ export default function App() {
         onClose={() => setSettingsOpen(false)}
         settings={settings}
         onChange={patchSettings}
-        onReset={() => setSettings(DEFAULT_SETTINGS)}
       />
 
       <DateMenu
