@@ -1,5 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, type CSSProperties } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import type { Glow } from "./TimerDigits";
+
+export type ThemeId = "steel" | "ember" | "lagoon" | "paper";
 
 const stroke = {
   fill: "none",
@@ -9,156 +12,125 @@ const stroke = {
   strokeLinejoin: "round" as const,
 };
 
-export type FontId = "unbounded" | "orbitron" | "russo" | "mono";
-export type Tracking = "tight" | "normal" | "wide";
-export type Glow = "off" | "soft" | "strong";
-export type ThemeId = "graphite" | "night" | "ember" | "paper";
+export const FONT_OPTIONS: { id: string; label: string; css: string }[] = [
+  {
+    id: "unbounded",
+    label: "Unbounded",
+    css: '"Unbounded", "Golos Text", system-ui, sans-serif',
+  },
+  { id: "orbitron", label: "Orbitron", css: '"Orbitron", "Unbounded", sans-serif' },
+  { id: "russo", label: "Russo One", css: '"Russo One", "Unbounded", sans-serif' },
+  {
+    id: "mono",
+    label: "JetBrains Mono",
+    css: '"JetBrains Mono", ui-monospace, monospace',
+  },
+];
+
+export const THEMES: { id: ThemeId; label: string; sw: [string, string, string] }[] = [
+  { id: "steel", label: "Сталь", sw: ["#0a0c0f", "#e7ecf1", "#f59a23"] },
+  { id: "ember", label: "Уголь", sw: ["#150f09", "#f3e9dc", "#ff9a23"] },
+  { id: "lagoon", label: "Лагуна", sw: ["#060d10", "#e6f4f2", "#3fd6c0"] },
+  { id: "paper", label: "Бумага", sw: ["#dfe4e8", "#141a21", "#0fa396"] },
+];
 
 export interface TimerSettings {
-  /** Множитель высоты цифр, 0.6–1.5. */
-  sizeScale: number;
-  font: FontId;
-  tracking: Tracking;
+  scale: number;
+  font: string;
+  spacing: "tight" | "normal" | "wide";
   glow: Glow;
-  /** Глитч-сбои, полосы помех и VHS-полоса. */
   glitch: boolean;
-  /** Канвас-слой с падающими глифами. */
-  rain: boolean;
+  glyphRain: boolean;
   theme: ThemeId;
 }
 
-export const FONTS: { id: FontId; label: string; family: string }[] = [
-  { id: "unbounded", label: "Unbounded", family: '"Unbounded", sans-serif' },
-  { id: "orbitron", label: "Orbitron", family: '"Orbitron", sans-serif' },
-  { id: "russo", label: "Russo One", family: '"Russo One", sans-serif' },
-  { id: "mono", label: "JetBrains Mono", family: '"JetBrains Mono", monospace' },
-];
-
-export const TRACKING_VALUES: Record<Tracking, string> = {
-  tight: "-0.03em",
-  normal: "0em",
-  wide: "0.08em",
-};
-
-export const THEMES: {
-  id: ThemeId;
-  label: string;
-  hint: string;
-  swatches: [string, string, string, string];
-}[] = [
-  {
-    id: "graphite",
-    label: "Графит",
-    hint: "сталь и янтарь",
-    swatches: ["#0a0c0f", "#232a33", "#e7ecf1", "#f59a23"],
-  },
-  {
-    id: "night",
-    label: "Полночь",
-    hint: "синь и лёд",
-    swatches: ["#05070d", "#1a2536", "#e8f0fb", "#4cc9f0"],
-  },
-  {
-    id: "ember",
-    label: "Уголь",
-    hint: "тёплый мрак",
-    swatches: ["#0f0b08", "#33261b", "#f4ead9", "#ffb45e"],
-  },
-  {
-    id: "paper",
-    label: "Бумага",
-    hint: "светлый лист",
-    swatches: ["#e9ebee", "#d3d9df", "#1b222b", "#d97706"],
-  },
-];
-
 export const DEFAULT_SETTINGS: TimerSettings = {
-  sizeScale: 1,
+  scale: 100,
   font: "unbounded",
-  tracking: "normal",
+  spacing: "normal",
   glow: "soft",
   glitch: true,
-  rain: true,
-  theme: "graphite",
+  glyphRain: true,
+  theme: "steel",
 };
 
-function SectionTitle({ children }: { children: string }) {
+interface Props {
+  open: boolean;
+  settings: TimerSettings;
+  onClose: () => void;
+  onPatch: (patch: Partial<TimerSettings>) => void;
+  onReset: () => void;
+  onFont: (id: string) => void;
+  onSpacing: (v: TimerSettings["spacing"]) => void;
+  onGlow: (v: Glow) => void;
+  onTheme: (v: ThemeId) => void;
+}
+
+function SectionLabel({ children }: { children: string }) {
   return (
-    <div className="mb-2.5 flex items-center gap-2">
-      <span className="h-px flex-1 bg-line" />
-      <span className="font-mono text-[10px] tracking-[0.22em] text-dim uppercase">
-        {children}
-      </span>
-      <span className="h-px flex-1 bg-line" />
-    </div>
+    <span className="font-mono text-[9.5px] font-medium tracking-[0.26em] text-dim uppercase">
+      {children}
+    </span>
   );
 }
 
-function Segmented<T extends string>({
+function Row({
+  label,
   value,
-  options,
-  onChange,
+  children,
 }: {
-  value: T;
-  options: { id: T; label: string }[];
-  onChange: (v: T) => void;
+  label: string;
+  value?: string;
+  children: React.ReactNode;
 }) {
   return (
-    <div className="flex gap-1 rounded-md border border-line bg-deep p-1">
-      {options.map((o) => (
-        <button
-          key={o.id}
-          onClick={() => onChange(o.id)}
-          className={[
-            "flex-1 cursor-pointer rounded px-2 py-1.5 font-mono text-[10.5px] tracking-wider uppercase transition-all duration-150",
-            value === o.id
-              ? "bg-raise text-ember shadow-[inset_0_0_0_1px_var(--color-linehi)]"
-              : "text-fog hover:text-ink",
-          ].join(" ")}
-        >
-          {o.label}
-        </button>
-      ))}
+    <div>
+      <div className="mb-2 flex items-baseline justify-between gap-3">
+        <SectionLabel>{label}</SectionLabel>
+        {value && (
+          <span className="font-mono text-[11px] text-ember tabular-nums">
+            {value}
+          </span>
+        )}
+      </div>
+      {children}
     </div>
   );
 }
 
 function Toggle({
-  checked,
+  on,
   onChange,
   label,
   hint,
 }: {
-  checked: boolean;
+  on: boolean;
   onChange: (v: boolean) => void;
   label: string;
   hint: string;
 }) {
   return (
     <button
+      type="button"
       role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className="btn-ghost flex w-full cursor-pointer items-center justify-between gap-3 rounded-md border border-line bg-deep px-3 py-2.5 text-left"
+      aria-checked={on}
+      onClick={() => onChange(!on)}
+      className="group flex w-full items-center justify-between gap-3 rounded-md border border-line bg-deep px-3 py-2.5 text-left transition-colors hover:border-linehi"
     >
       <span className="min-w-0">
-        <span className="block text-[13px] leading-tight font-semibold text-ink">
-          {label}
-        </span>
-        <span className="mt-0.5 block text-[10.5px] leading-tight text-dim">
-          {hint}
-        </span>
+        <span className="block text-[12.5px] font-medium text-ink">{label}</span>
+        <span className="block text-[10.5px] leading-snug text-dim">{hint}</span>
       </span>
       <span
         className={[
-          "relative h-5 w-9 shrink-0 rounded-full transition-colors duration-200",
-          checked ? "bg-flare" : "bg-line",
+          "relative h-[18px] w-[34px] shrink-0 rounded-full border transition-colors",
+          on ? "border-flare/60 bg-flare/30" : "border-line bg-raise",
         ].join(" ")}
       >
         <span
           className={[
-            "absolute top-0.5 h-4 w-4 rounded-full bg-ink transition-transform duration-200",
-            checked ? "translate-x-[18px]" : "translate-x-0.5",
+            "absolute top-[2px] h-[12px] w-[12px] rounded-full transition-all duration-200",
+            on ? "left-[18px] bg-ember" : "left-[3px] bg-dim",
           ].join(" ")}
         />
       </span>
@@ -166,62 +138,29 @@ function Toggle({
   );
 }
 
-function ThemePicker({
-  value,
-  onChange,
-}: {
-  value: ThemeId;
-  onChange: (t: ThemeId) => void;
-}) {
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      {THEMES.map((t) => {
-        const active = value === t.id;
-        return (
-          <button
-            key={t.id}
-            onClick={() => onChange(t.id)}
-            className={[
-              "preset-btn cursor-pointer rounded-md border px-2.5 py-2 text-left",
-              active
-                ? "border-ember/70 bg-raise shadow-[0_0_18px_rgba(245,154,35,0.12)]"
-                : "border-line bg-deep",
-            ].join(" ")}
-          >
-            <span className="flex h-5 w-full overflow-hidden rounded-sm border border-line/60">
-              {t.swatches.map((c) => (
-                <span key={c} className="h-full flex-1" style={{ background: c }} />
-              ))}
-            </span>
-            <span className="mt-1.5 flex items-center justify-between gap-2">
-              <span className="text-[12px] leading-tight font-semibold text-ink">
-                {t.label}
-              </span>
-              {active && (
-                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0 text-ember" {...stroke}>
-                  <path d="m5 12.5 4.5 4.5L19 7.5" />
-                </svg>
-              )}
-            </span>
-            <span className="block text-[10px] leading-tight text-dim">{t.hint}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+const SPACINGS: { id: TimerSettings["spacing"]; label: string; ls: string }[] = [
+  { id: "tight", label: "Узкий", ls: "-0.03em" },
+  { id: "normal", label: "Средний", ls: "0em" },
+  { id: "wide", label: "Широкий", ls: "0.06em" },
+];
+
+const GLOWS: { id: Glow; label: string }[] = [
+  { id: "off", label: "Выкл" },
+  { id: "soft", label: "Среднее" },
+  { id: "strong", label: "Яркое" },
+];
 
 export function SettingsPanel({
   open,
-  onClose,
   settings,
-  onChange,
-}: {
-  open: boolean;
-  onClose: () => void;
-  settings: TimerSettings;
-  onChange: (patch: Partial<TimerSettings>) => void;
-}) {
+  onClose,
+  onPatch,
+  onReset,
+  onFont,
+  onSpacing,
+  onGlow,
+  onTheme,
+}: Props) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -231,45 +170,56 @@ export function SettingsPanel({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
+  const seg = (active: boolean) =>
+    [
+      "flex-1 rounded border px-2 py-1.5 font-mono text-[11px] tracking-wider uppercase transition-colors",
+      active
+        ? "border-flare/60 bg-flare/15 text-ember"
+        : "border-line bg-deep text-fog hover:border-linehi hover:text-ink",
+    ].join(" ");
+
   return (
     <AnimatePresence>
       {open && (
         <>
-          <motion.div
+          <motion.button
             key="settings-backdrop"
-            className="fixed inset-0 z-40 bg-abyss/60"
+            type="button"
+            aria-label="Закрыть настройки"
+            className="fixed inset-0 z-40 cursor-default bg-abyss/60"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.22 }}
             onClick={onClose}
           />
           <motion.aside
             key="settings-panel"
             role="dialog"
             aria-modal="true"
-            aria-label="Настройки оформления"
-            className="fixed top-0 right-0 bottom-0 z-50 flex w-[min(92vw,350px)] flex-col border-l border-line bg-panel/95 shadow-[-30px_0_80px_rgba(0,0,0,0.5)] backdrop-blur-sm"
+            aria-label="Настройки отображения"
+            className="fixed top-0 right-0 bottom-0 z-50 flex w-[min(88vw,330px)] flex-col border-l border-line bg-panel/95 shadow-[-30px_0_80px_rgba(0,0,0,0.5)] backdrop-blur-sm"
             initial={{ x: "104%" }}
             animate={{ x: 0 }}
             exit={{ x: "104%" }}
             transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
+            <div className="flex items-center justify-between border-b border-line px-5 py-4">
               <div className="flex items-center gap-2.5">
                 <svg viewBox="0 0 24 24" className="h-4 w-4 text-ember" {...stroke}>
-                  <path d="M4 8h16M4 16h16" />
-                  <circle cx="9" cy="8" r="2.2" />
-                  <circle cx="15" cy="16" r="2.2" />
+                  <path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h9M17 17h3" />
+                  <circle cx="15" cy="7" r="2" />
+                  <circle cx="9" cy="12" r="2" />
+                  <circle cx="15" cy="17" r="2" />
                 </svg>
                 <span className="font-display text-[11px] font-medium tracking-[0.18em] text-ink uppercase">
-                  Оформление
+                  Настройки
                 </span>
               </div>
               <button
                 onClick={onClose}
-                aria-label="Закрыть настройки"
-                className="btn-ghost -mr-1.5 cursor-pointer rounded-md border border-transparent p-1.5 text-fog hover:text-ink"
+                aria-label="Закрыть"
+                className="btn-ghost -mr-1 rounded-md border border-transparent p-1.5 text-fog hover:text-ink"
               >
                 <svg viewBox="0 0 24 24" className="h-4 w-4" {...stroke}>
                   <path d="m6 6 12 12M18 6 6 18" />
@@ -277,58 +227,49 @@ export function SettingsPanel({
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 py-5">
-              <SectionTitle>Тема сайта</SectionTitle>
-              <ThemePicker
-                value={settings.theme}
-                onChange={(theme) => onChange({ theme })}
-              />
-
-              <div className="mt-6">
-                <SectionTitle>Высота цифр</SectionTitle>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="range"
-                    min={60}
-                    max={150}
-                    step={5}
-                    value={Math.round(settings.sizeScale * 100)}
-                    onChange={(e) => onChange({ sizeScale: Number(e.target.value) / 100 })}
-                    className="h-1.5 flex-1 cursor-pointer accent-flare"
-                    aria-label="Масштаб высоты цифр"
-                  />
-                  <span className="w-12 text-right font-mono text-[12px] text-ember tabular-nums">
-                    {Math.round(settings.sizeScale * 100)}%
-                  </span>
+            <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
+              <Row label="Высота цифр" value={`${settings.scale}%`}>
+                <input
+                  type="range"
+                  min={60}
+                  max={150}
+                  step={5}
+                  value={settings.scale}
+                  onChange={(e) => onPatch({ scale: Number(e.target.value) })}
+                  className="w-full cursor-pointer"
+                  aria-label="Высота цифр, процентов"
+                />
+                <div className="mt-1 flex justify-between font-mono text-[9px] text-dim">
+                  <span>60%</span>
+                  <span>150%</span>
                 </div>
-              </div>
+              </Row>
 
-              <div className="mt-6">
-                <SectionTitle>Шрифт цифр</SectionTitle>
+              <div>
+                <div className="mb-2">
+                  <SectionLabel>Шрифт цифр</SectionLabel>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
-                  {FONTS.map((f) => (
+                  {FONT_OPTIONS.map((f) => (
                     <button
                       key={f.id}
-                      onClick={() => onChange({ font: f.id })}
+                      type="button"
+                      aria-pressed={settings.font === f.id}
+                      onClick={() => onFont(f.id)}
                       className={[
-                        "preset-btn cursor-pointer rounded-md border px-3 py-2 text-left",
+                        "rounded-md border px-3 py-2.5 text-left transition-all",
                         settings.font === f.id
-                          ? "border-ember/70 bg-raise shadow-[0_0_18px_rgba(245,154,35,0.12)]"
-                          : "border-line bg-deep",
+                          ? "border-flare/60 bg-flare/10 shadow-[0_0_18px_rgba(245,154,35,0.12)]"
+                          : "border-line bg-deep hover:border-linehi",
                       ].join(" ")}
                     >
                       <span
-                        className="block text-[21px] leading-none text-ink"
-                        style={{ fontFamily: f.family }}
+                        className="block text-[19px] leading-none text-ink"
+                        style={{ fontFamily: f.css } as CSSProperties}
                       >
                         07:59
                       </span>
-                      <span
-                        className={[
-                          "mt-1.5 block text-[10.5px] tracking-wide",
-                          settings.font === f.id ? "text-ember" : "text-fog",
-                        ].join(" ")}
-                      >
+                      <span className="mt-1.5 block font-mono text-[9.5px] tracking-wider text-dim uppercase">
                         {f.label}
                       </span>
                     </button>
@@ -336,55 +277,94 @@ export function SettingsPanel({
                 </div>
               </div>
 
-              <div className="mt-6">
-                <SectionTitle>Межбуквенный интервал</SectionTitle>
-                <Segmented
-                  value={settings.tracking}
-                  options={[
-                    { id: "tight", label: "Узкий" },
-                    { id: "normal", label: "Средний" },
-                    { id: "wide", label: "Широкий" },
-                  ]}
-                  onChange={(tracking) => onChange({ tracking })}
-                />
-              </div>
-
-              <div className="mt-6">
-                <SectionTitle>Свечение цифр</SectionTitle>
-                <Segmented
-                  value={settings.glow}
-                  options={[
-                    { id: "off", label: "Выкл" },
-                    { id: "soft", label: "Среднее" },
-                    { id: "strong", label: "Яркое" },
-                  ]}
-                  onChange={(glow) => onChange({ glow })}
-                />
-              </div>
-
-              <div className="mt-6">
-                <SectionTitle>Эффекты</SectionTitle>
-                <div className="flex flex-col gap-2">
-                  <Toggle
-                    checked={settings.glitch}
-                    onChange={(glitch) => onChange({ glitch })}
-                    label="Глитч-сбои"
-                    hint="помехи, RGB-расщепление, VHS-полоса"
-                  />
-                  <Toggle
-                    checked={settings.rain}
-                    onChange={(rain) => onChange({ rain })}
-                    label="Глиф-дождь"
-                    hint="канвас-слой с падающими символами"
-                  />
+              <div>
+                <div className="mb-2">
+                  <SectionLabel>Тема сайта</SectionLabel>
                 </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {THEMES.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      aria-pressed={settings.theme === t.id}
+                      onClick={() => onTheme(t.id)}
+                      className={[
+                        "flex items-center gap-2.5 rounded-md border px-3 py-2.5 text-left transition-all",
+                        settings.theme === t.id
+                          ? "border-flare/60 bg-flare/10 shadow-[0_0_18px_rgba(245,154,35,0.12)]"
+                          : "border-line bg-deep hover:border-linehi",
+                      ].join(" ")}
+                    >
+                      <span className="flex shrink-0 -space-x-1">
+                        {t.sw.map((c) => (
+                          <span
+                            key={c}
+                            className="h-3.5 w-3.5 rounded-full border border-black/30"
+                            style={{ background: c }}
+                          />
+                        ))}
+                      </span>
+                      <span className="text-[12px] font-medium text-ink">
+                        {t.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <Row label="Межбуквенный интервал">
+                <div className="flex gap-1.5">
+                  {SPACINGS.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      aria-pressed={settings.spacing === s.id}
+                      onClick={() => onSpacing(s.id)}
+                      className={seg(settings.spacing === s.id)}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </Row>
+
+              <Row label="Свечение цифр">
+                <div className="flex gap-1.5">
+                  {GLOWS.map((g) => (
+                    <button
+                      key={g.id}
+                      type="button"
+                      aria-pressed={settings.glow === g.id}
+                      onClick={() => onGlow(g.id)}
+                      className={seg(settings.glow === g.id)}
+                    >
+                      {g.label}
+                    </button>
+                  ))}
+                </div>
+              </Row>
+
+              <div className="space-y-2">
+                <SectionLabel>Эффекты</SectionLabel>
+                <Toggle
+                  on={settings.glitch}
+                  onChange={(v) => onPatch({ glitch: v })}
+                  label="Глитч-сбои"
+                  hint="помехи, RGB-расщепление и VHS-полоса"
+                />
+                <Toggle
+                  on={settings.glyphRain}
+                  onChange={(v) => onPatch({ glyphRain: v })}
+                  label="Глиф-дождь"
+                  hint="падающие символы на canvas"
+                />
               </div>
             </div>
 
-            <div className="border-t border-line px-5 py-3.5">
+            <div className="border-t border-line px-5 py-4">
               <button
-                onClick={() => onChange({ ...DEFAULT_SETTINGS })}
-                className="btn-ghost flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-line bg-deep px-4 py-2.5 font-mono text-[11px] tracking-[0.18em] text-fog uppercase hover:text-ink"
+                onClick={onReset}
+                className="btn-ghost flex w-full items-center justify-center gap-2 rounded-md border border-line bg-deep px-4 py-2.5 font-display text-[11px] font-medium tracking-[0.16em] text-fog uppercase hover:text-alarm"
               >
                 <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" {...stroke}>
                   <path d="M3.5 12a8.5 8.5 0 1 0 2.5-6L3.5 8.5" />
