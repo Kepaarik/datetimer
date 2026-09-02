@@ -71,7 +71,7 @@ export function Unit({
     <div className="group flex min-w-0 flex-col items-center gap-[0.14em] sm:gap-[0.16em]">
       <span
         className={[
-          "font-display leading-none font-semibold tracking-tight tabular-nums",
+          "leading-none font-semibold tabular-nums",
           numCls,
         ].join(" ")}
       >
@@ -97,7 +97,7 @@ export function Colon({ alarm }: { alarm?: boolean }) {
   return (
     <span
       className={[
-        "colon-blink font-display pb-[0.4em] text-[0.5em] leading-none font-light",
+        "colon-blink pb-[0.4em] text-[0.5em] leading-none font-light",
         alarm ? "text-alarm/60" : "text-ember",
       ].join(" ")}
       aria-hidden="true"
