@@ -42,6 +42,10 @@ export interface TimerSettings {
   glitch: boolean;
   glyphRain: boolean;
   theme: ThemeId;
+  /** параллельные потоки глиф-дождя, 1–3 */
+  rainLayers: number;
+  /** доля новых капель за цикл падения, 0.05–0.6 */
+  rainDensity: number;
 }
 
 export const DEFAULT_SETTINGS: TimerSettings = {
@@ -52,6 +56,8 @@ export const DEFAULT_SETTINGS: TimerSettings = {
   glitch: true,
   glyphRain: true,
   theme: "steel",
+  rainLayers: 2,
+  rainDensity: 0.06,
 };
 
 interface Props {
@@ -352,12 +358,66 @@ export function SettingsPanel({
                   label="Глитч-сбои"
                   hint="помехи, RGB-расщепление и VHS-полоса"
                 />
+              </div>
+
+              <div className="space-y-4">
+                <SectionLabel>Глиф-дождь</SectionLabel>
                 <Toggle
                   on={settings.glyphRain}
                   onChange={(v) => onPatch({ glyphRain: v })}
-                  label="Глиф-дождь"
-                  hint="падающие символы на canvas"
+                  label="Дождь из глифов"
+                  hint="падающие символы на фоне"
                 />
+                <div
+                  className={[
+                    "space-y-4 transition-opacity duration-200",
+                    settings.glyphRain ? "opacity-100" : "pointer-events-none opacity-35",
+                  ].join(" ")}
+                >
+                  <Row
+                    label="Количество потоков"
+                    value={`×${settings.rainLayers}`}
+                  >
+                    <input
+                      type="range"
+                      min={1}
+                      max={3}
+                      step={1}
+                      value={settings.rainLayers}
+                      onChange={(e) =>
+                        onPatch({ rainLayers: Number(e.target.value) })
+                      }
+                      className="w-full cursor-pointer"
+                      aria-label="Количество потоков глифов"
+                    />
+                    <div className="mt-1 flex justify-between font-mono text-[9px] text-dim">
+                      <span>1 слой</span>
+                      <span>2 слоя</span>
+                      <span>3 слоя</span>
+                    </div>
+                  </Row>
+                  <Row
+                    label="Плотность глифов"
+                    value={`${Math.round(settings.rainDensity * 100)}%`}
+                  >
+                    <input
+                      type="range"
+                      min={5}
+                      max={60}
+                      step={1}
+                      value={Math.round(settings.rainDensity * 100)}
+                      onChange={(e) =>
+                        onPatch({ rainDensity: Number(e.target.value) / 100 })
+                      }
+                      className="w-full cursor-pointer"
+                      aria-label="Плотность глифов, процентов"
+                    />
+                    <div className="mt-1 flex justify-between font-mono text-[9px] text-dim">
+                      <span>редко</span>
+                      <span>густо</span>
+                    </div>
+                  </Row>
+                </div>
               </div>
             </div>
 
