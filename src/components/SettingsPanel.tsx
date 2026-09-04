@@ -74,8 +74,12 @@ export interface TimerSettings {
   asciiSize: number;
   /** чёткость сетки ASCII в процентах, 40–160 — плотность и размер символов */
   asciiSharp: number;
+  /** скорость авторотации объекта в процентах, 0–200 */
+  spinSpeed: number;
   /** цвет символов объекта: "auto" (нейтраль темы) или #rrggbb */
   asciiColor: string;
+  /** звуковая и визуальная развязка на последних 10 секундах */
+  finalCount: boolean;
 }
 
 export const ASCII_COLORS: { id: string; label: string }[] = [
@@ -112,7 +116,9 @@ export const DEFAULT_SETTINGS: TimerSettings = {
   asciiShape: "duck",
   asciiSize: 100,
   asciiSharp: 100,
+  spinSpeed: 100,
   asciiColor: "auto",
+  finalCount: true,
 };
 
 export const ASCII_SHAPES: { id: AsciiShape; label: string }[] = [
@@ -322,6 +328,13 @@ const fxIcon = {
       <ellipse cx="12" cy="12" rx="9" ry="4.5" />
       <ellipse cx="12" cy="12" rx="9" ry="4.5" transform="rotate(60 12 12)" opacity="0.55" />
       <circle cx="12" cy="12" r="1.2" />
+    </svg>
+  ),
+  finalCount: (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" {...stroke}>
+      <path d="M6 9.5a6 6 0 1 1 12 0c0 4.6 1.8 5.8 1.8 5.8H4.2S6 14.1 6 9.5" />
+      <path d="M10 18.8a2.1 2.1 0 0 0 4 0" />
+      <path d="M12 2.5v1.6" />
     </svg>
   ),
 };
@@ -605,6 +618,12 @@ export function SettingsPanel({
                     label="Дождь"
                     icon={fxIcon.raindrop}
                   />
+                  <MiniToggle
+                    on={settings.finalCount}
+                    onToggle={() => onPatch({ finalCount: !settings.finalCount })}
+                    label="Финальная десятка"
+                    icon={fxIcon.finalCount}
+                  />
                 </div>
               </div>
 
@@ -731,6 +750,24 @@ export function SettingsPanel({
                     <div className="mt-1 flex justify-between font-mono text-[9px] text-dim">
                       <span>крупное зерно</span>
                       <span>мелкие детали</span>
+                    </div>
+                  </Row>
+                  <Row label="Скорость вращения" value={`${settings.spinSpeed}%`}>
+                    <input
+                      type="range"
+                      min={0}
+                      max={200}
+                      step={5}
+                      value={settings.spinSpeed}
+                      onChange={(e) =>
+                        onPatch({ spinSpeed: Number(e.target.value) })
+                      }
+                      className="w-full cursor-pointer"
+                      aria-label="Скорость вращения объекта, процентов"
+                    />
+                    <div className="mt-1 flex justify-between font-mono text-[9px] text-dim">
+                      <span>стоп</span>
+                      <span>2×</span>
                     </div>
                   </Row>
                   <Row label="Цвет объекта">

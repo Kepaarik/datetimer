@@ -112,6 +112,32 @@ function playChime() {
   }
 }
 
+/* короткий «тик» финальной десятки — тон растёт по мере приближения нуля */
+function playTick(sec: number) {
+  try {
+    const Ctx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
+    const ctx = new Ctx();
+    void ctx.resume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.value = 660 + (10 - Math.max(0, sec)) * 55;
+    const t0 = ctx.currentTime;
+    gain.gain.setValueAtTime(0, t0);
+    gain.gain.linearRampToValueAtTime(0.14, t0 + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.12);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + 0.14);
+    setTimeout(() => ctx.close(), 300);
+  } catch {
+    /* звук не обязателен */
+  }
+}
+
 function fireConfetti(colors: string[]) {
   const shot = (origin: { x: number; y: number }, angle: number) =>
     confetti({
@@ -181,9 +207,14 @@ function loadSettings(): TimerSettings {
       "meteors",
       "raindrops",
       "ascii",
+      "finalCount",
     ] as const) {
       if (typeof merged[k] !== "boolean") merged[k] = DEFAULT_SETTINGS[k];
     }
+    const spinSpeed = Number(merged.spinSpeed);
+    merged.spinSpeed = Number.isFinite(spinSpeed)
+      ? Math.min(200, Math.max(0, spinSpeed))
+      : DEFAULT_SETTINGS.spinSpeed;
     if (!ASCII_SHAPES.includes(merged.asciiShape)) {
       merged.asciiShape = DEFAULT_SETTINGS.asciiShape;
     }
@@ -351,6 +382,69 @@ export default function App() {
     target !== null && from !== null && target > from
       ? Math.min(1, Math.max(0, (now - from) / (target - from)))
       : 0;
+  /* доля оставшегося времени — для кольца прогресса и фавиконки */
+  const fracLeft = Math.min(1, Math.max(0, 1 - progress));
+
+  /* «финальная десятка»: последние 10 секунд отсчёта */
+  const urgent =
+    settings.finalCount &&
+    phase === "running" &&
+    remaining.totalSeconds > 0 &&
+    remaining.totalSeconds <= 10;
+
+  /* тик каждую секунду финальной десятки */
+  useEffect(() => {
+    if (urgent) playTick(remaining.totalSeconds);
+  }, [urgent, remaining.totalSeconds]);
+
+  /* живая вкладка: время в заголовке + кольцо прогресса в фавиконке */
+  useEffect(() => {
+    const p2 = (n: number) => String(n).padStart(2, "0");
+    let title = "Обратный отсчёт";
+    if (phase === "running") {
+      const { days: d, hours: h, minutes: m, seconds: s } = remaining;
+      const t =
+        d > 0
+          ? `${d}д ${p2(h)}:${p2(m)}:${p2(s)}`
+          : h > 0
+            ? `${p2(h)}:${p2(m)}:${p2(s)}`
+            : `${p2(m)}:${p2(s)}`;
+      title = `${t} · отсчёт`;
+    } else if (phase === "finished") {
+      title = "Время вышло · таймер";
+    }
+    document.title = title;
+
+    const size = 64;
+    const c = document.createElement("canvas");
+    c.width = size;
+    c.height = size;
+    const g = c.getContext("2d");
+    if (!g) return;
+    g.lineCap = "round";
+    g.lineWidth = 9;
+    g.strokeStyle = "rgba(120,132,144,0.35)";
+    g.beginPath();
+    g.arc(32, 32, 23, 0, Math.PI * 2);
+    g.stroke();
+    if (phase !== "idle") {
+      const a0 = -Math.PI / 2;
+      const a1 = a0 + Math.PI * 2 * Math.max(0.006, fracLeft);
+      g.strokeStyle = urgent ? "#ff6b5e" : THEME_ACCENT[settings.theme];
+      g.beginPath();
+      g.arc(32, 32, 23, a0, a1);
+      g.stroke();
+    }
+    let link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "icon";
+      document.head.appendChild(link);
+    }
+    link.type = "image/png";
+    link.href = c.toDataURL();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, remaining.totalSeconds, fracLeft, urgent, settings.theme]);
 
   const chip =
     phase === "running"
@@ -380,6 +474,9 @@ export default function App() {
     26,
     Math.max(5, Math.round((13 * 100) / settings.asciiSharp)),
   );
+  /* сигнал «тика» для 3D-объекта: меняется раз в секунду, пока идёт отсчёт */
+  const objectPulse =
+    settings.tickPulse && phase === "running" ? remaining.totalSeconds : -1;
 
   const scene = useMemo(
     () => (
@@ -460,7 +557,47 @@ export default function App() {
         <div className="hairline-top relative z-10 mx-6 sm:mx-10" />
 
         {/* сцена таймера */}
-        <main className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-4">
+        <main
+          className={[
+            "relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-4",
+            urgent ? "final-shake" : "",
+          ].join(" ")}
+        >
+          {/* кольцо прогресса вокруг цифр */}
+          {phase !== "idle" && (
+            <svg
+              viewBox="0 0 100 100"
+              className="pointer-events-none absolute top-1/2 left-1/2 h-[min(78vmin,640px)] w-[min(78vmin,640px)] -translate-x-1/2 -translate-y-1/2 -rotate-90"
+              aria-hidden="true"
+            >
+              <circle
+                cx="50"
+                cy="50"
+                r="47"
+                fill="none"
+                stroke="var(--color-line)"
+                strokeWidth="0.5"
+                opacity="0.55"
+              />
+              <circle
+                cx="50"
+                cy="50"
+                r="47"
+                fill="none"
+                stroke={urgent ? "var(--color-alarm)" : "var(--color-flare)"}
+                strokeWidth={urgent ? 1.1 : 0.8}
+                strokeLinecap="round"
+                strokeDasharray={2 * Math.PI * 47}
+                strokeDashoffset={2 * Math.PI * 47 * (1 - fracLeft)}
+                opacity="0.85"
+                style={{
+                  transition:
+                    "stroke-dashoffset 0.35s linear, stroke 0.3s ease, stroke-width 0.3s ease",
+                }}
+              />
+            </svg>
+          )}
+
           {/* 3D-объект из ASCII-символов за таймером */}
           {settings.ascii && (
             <div
@@ -479,12 +616,16 @@ export default function App() {
                   cell={asciiCell}
                   className="h-full w-full"
                   onFail={() => setDuckFailed(true)}
+                  pulse={objectPulse}
+                  speed={settings.spinSpeed / 100}
                 />
               ) : (
                 <AsciiObject
                   shape={settings.asciiShape}
                   color={objectColor}
                   cell={asciiCell}
+                  pulse={objectPulse}
+                  speed={settings.spinSpeed / 100}
                 />
               )}
             </div>
@@ -549,7 +690,7 @@ export default function App() {
             </button>
 
             {/* сам таймер — не кликабельный */}
-            <div className="relative">
+            <div className={["relative", urgent ? "urgent-pulse" : ""].join(" ")}>
               {settings.tickPulse && phase === "running" && (
                 <span
                   key={`tick-${remaining.seconds}`}
@@ -600,6 +741,7 @@ export default function App() {
                     hours={remaining.hours}
                     minutes={remaining.minutes}
                     seconds={remaining.seconds}
+                    urgent={urgent}
                     glitching={glitching}
                     glow={glow}
                     fontSize={fontSize}
@@ -716,6 +858,10 @@ export default function App() {
       settings.theme,
       objectColor,
       asciiCell,
+      objectPulse,
+      settings.spinSpeed,
+      urgent,
+      fracLeft,
       duckFailed,
       bars,
     ],

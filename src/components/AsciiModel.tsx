@@ -16,6 +16,10 @@ export interface AsciiModelProps {
   className?: string;
   /** вызывается, если ни один источник не загрузился */
   onFail?: () => void;
+  /** меняющееся значение (секунды) — модель коротко «подпрыгивает» */
+  pulse?: number;
+  /** множитель скорости авторотации, 1 = по умолчанию */
+  speed?: number;
 }
 
 /* ---------- разбор бинарного glTF (GLB) ---------- */
@@ -263,12 +267,25 @@ export function AsciiModel({
   opacity = 0.5,
   className,
   onFail,
+  pulse = 0,
+  speed = 1,
 }: AsciiModelProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const colorRef = useRef(color);
   colorRef.current = color;
   const onFailRef = useRef(onFail);
   onFailRef.current = onFail;
+  const speedRef = useRef(speed);
+  speedRef.current = speed;
+  /* «подпрыгивание» на тик: импульс затухает в цикле отрисовки */
+  const kickRef = useRef(0);
+  const pulseValRef = useRef(pulse);
+  useEffect(() => {
+    if (pulse !== pulseValRef.current) {
+      pulseValRef.current = pulse;
+      if (pulse >= 0) kickRef.current = 1;
+    }
+  }, [pulse]);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -291,7 +308,7 @@ export function AsciiModel({
     const shade = new Float32Array(W * H);
 
     const DIST = 6.4;
-    const F = H * 1.35;
+    const F0 = H * 1.35;
     /* свет: сверху-слева, чуть спереди */
     const LX = 0.45;
     const LY = 0.78;
@@ -321,6 +338,8 @@ export function AsciiModel({
 
     const rasterize = () => {
       if (!mesh || !rx || !ry || !rz) return;
+      /* лёгкий «вдох» модели на каждую смену секунд */
+      const F = F0 * (1 + 0.06 * kickRef.current);
       const sA = Math.sin(A);
       const cA = Math.cos(A);
       const sB = Math.sin(B);
@@ -436,8 +455,10 @@ export function AsciiModel({
       last = t;
       px += (tx - px) * 0.045;
       py += (ty - py) * 0.045;
-      A = 0.55 + py * 0.9 + Math.sin(t * 0.0004) * 0.12;
-      B += dt * 0.5 + px * dt * 0.8;
+      const spd = speedRef.current;
+      A = 0.55 + py * 0.9 + Math.sin(t * 0.0004 * spd) * 0.12;
+      B += dt * 0.5 * spd + px * dt * 0.8;
+      kickRef.current *= Math.exp(-dt * 5.5);
       renderFrame();
       raf = requestAnimationFrame(frame);
     };
