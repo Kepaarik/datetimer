@@ -121,6 +121,8 @@ function loadSettings(): TimerSettings {
     const raw = localStorage.getItem(LS_SETTINGS);
     if (!raw) return DEFAULT_SETTINGS;
     const p = JSON.parse(raw) as Partial<TimerSettings>;
+    const layers = Math.round(Number(p.rainLayers));
+    const density = Number(p.rainDensity);
     return {
       ...DEFAULT_SETTINGS,
       ...p,
@@ -130,6 +132,12 @@ function loadSettings(): TimerSettings {
       theme: THEMES.some((t) => t.id === p.theme)
         ? (p.theme as ThemeId)
         : DEFAULT_SETTINGS.theme,
+      rainLayers: Number.isFinite(layers)
+        ? Math.min(3, Math.max(1, layers))
+        : DEFAULT_SETTINGS.rainLayers,
+      rainDensity: Number.isFinite(density)
+        ? Math.min(0.6, Math.max(0.05, density))
+        : DEFAULT_SETTINGS.rainDensity,
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -596,12 +604,12 @@ export default function App() {
           headColor={THEME_GLYPHS[settings.theme].head}
           speed={0.13}
           speedVariance={0.6}
-          density={0.06}
+          density={settings.rainDensity}
+          layers={settings.rainLayers}
           trail={1.15}
           glow={1.35}
           mutate={0.5}
           flicker={0.3}
-          layers={2}
           dim={0}
           light={0}
           stir={0.85}
