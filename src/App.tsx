@@ -5,6 +5,7 @@ import { Ripple } from "./components/canvasui/Ripple";
 import { TimerDigits, type Glow } from "./components/TimerDigits";
 import { DateMenu } from "./components/DateMenu";
 import { Scramble } from "./components/Scramble";
+import { ParticleFX } from "./components/ParticleFX";
 import {
   DEFAULT_SETTINGS,
   FONT_OPTIONS,
@@ -123,7 +124,7 @@ function loadSettings(): TimerSettings {
     const p = JSON.parse(raw) as Partial<TimerSettings>;
     const layers = Math.round(Number(p.rainLayers));
     const density = Number(p.rainDensity);
-    return {
+    const merged: TimerSettings = {
       ...DEFAULT_SETTINGS,
       ...p,
       font: FONT_OPTIONS.some((f) => f.id === p.font)
@@ -139,6 +140,20 @@ function loadSettings(): TimerSettings {
         ? Math.min(0.6, Math.max(0.05, density))
         : DEFAULT_SETTINGS.rainDensity,
     };
+    /* булевы флаги эффектов — только из доверенного типа */
+    for (const k of [
+      "glitch",
+      "glyphRain",
+      "ripple",
+      "scramble",
+      "tickPulse",
+      "embers",
+      "snow",
+      "cursorTrail",
+    ] as const) {
+      if (typeof merged[k] !== "boolean") merged[k] = DEFAULT_SETTINGS[k];
+    }
+    return merged;
   } catch {
     return DEFAULT_SETTINGS;
   }
@@ -340,7 +355,11 @@ export default function App() {
             </span>
             <div className="leading-tight">
               <div className="font-display text-[13px] font-semibold tracking-[0.22em] text-ink uppercase">
-                <Scramble text="Обратный отсчёт" interval={7000} />
+                {settings.scramble ? (
+                  <Scramble text="Обратный отсчёт" interval={7000} />
+                ) : (
+                  "Обратный отсчёт"
+                )}
               </div>
               <div className="font-mono text-[10px] tracking-[0.18em] text-dim uppercase">
                 таймер до заданной даты
@@ -439,6 +458,13 @@ export default function App() {
 
             {/* сам таймер — не кликабельный */}
             <div className="relative">
+              {settings.tickPulse && phase === "running" && (
+                <span
+                  key={`tick-${remaining.seconds}`}
+                  className="tick-ring"
+                  aria-hidden="true"
+                />
+              )}
               <div className="block rounded-xl px-2 py-2 sm:px-6">
                 {phase === "finished" ? (
                   <div className="flex flex-col items-center gap-4">
@@ -589,9 +615,33 @@ export default function App() {
       spacing,
       glow,
       settings.glitch,
+      settings.tickPulse,
+      settings.scramble,
       bars,
     ],
   );
+
+  const content = settings.ripple ? (
+    <Ripple
+      className="relative h-full"
+      amplitude={0.7}
+      speed={0.75}
+      wavelength={110}
+      rings={3}
+      decay={0.85}
+      refraction={80}
+      dispersion={0.65}
+      shine={1.1}
+      trigger="click"
+    >
+      {scene}
+    </Ripple>
+  ) : (
+    <div className="relative h-full">{scene}</div>
+  );
+
+  const particlesOn =
+    settings.embers || settings.snow || settings.cursorTrail;
 
   return (
     <div className="fixed inset-0 overflow-hidden">
@@ -616,23 +666,20 @@ export default function App() {
           stirRadius={240}
           settle={1}
         >
-          <Ripple
-            className="relative h-full"
-            amplitude={0.7}
-            speed={0.75}
-            wavelength={110}
-            rings={3}
-            decay={0.85}
-            refraction={80}
-            dispersion={0.65}
-            shine={1.1}
-            trigger="click"
-          >
-            {scene}
-          </Ripple>
+          {content}
         </GlyphRain>
       ) : (
-        <div className="absolute inset-0">{scene}</div>
+        <div className="absolute inset-0">{content}</div>
+      )}
+
+      {particlesOn && (
+        <ParticleFX
+          embers={settings.embers}
+          snow={settings.snow}
+          trail={settings.cursorTrail}
+          light={settings.theme === "paper"}
+          accent={THEME_GLYPHS[settings.theme].head}
+        />
       )}
 
       {/* кнопка настроек на правом краю */}

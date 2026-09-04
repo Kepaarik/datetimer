@@ -296,6 +296,32 @@ body {
   }
 }
 
+/* кольцо, расходящееся от таймера на каждый тик секунд */
+.tick-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(72vmin, 620px);
+  height: min(72vmin, 620px);
+  margin-top: calc(min(72vmin, 620px) / -2);
+  margin-left: calc(min(72vmin, 620px) / -2);
+  border-radius: 9999px;
+  border: 1px solid var(--color-flare);
+  pointer-events: none;
+  animation: tick-ring 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes tick-ring {
+  from {
+    transform: scale(0.5);
+    opacity: 0.4;
+  }
+  to {
+    transform: scale(1.08);
+    opacity: 0;
+  }
+}
+
 /* вечный сбой для финального состояния */
 .glitch-hard {
   animation:
@@ -591,5 +617,9 @@ html[data-theme="paper"] .noise::after {
   .glitch-hard,
   .vhs-band {
     animation: none;
+  }
+
+  .tick-ring {
+    display: none;
   }
 }

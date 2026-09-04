@@ -46,6 +46,18 @@ export interface TimerSettings {
   rainLayers: number;
   /** доля новых капель за цикл падения, 0.05–0.6 */
   rainDensity: number;
+  /** рябь на кликах (Canvas UI Ripple) */
+  ripple: boolean;
+  /** расшифровка заголовка глитч-глифами */
+  scramble: boolean;
+  /** кольцо, расходящееся от таймера каждую секунду */
+  tickPulse: boolean;
+  /** восходящие искры на фоне */
+  embers: boolean;
+  /** падающий снег на фоне */
+  snow: boolean;
+  /** затухающий след за курсором */
+  cursorTrail: boolean;
 }
 
 export const DEFAULT_SETTINGS: TimerSettings = {
@@ -58,6 +70,12 @@ export const DEFAULT_SETTINGS: TimerSettings = {
   theme: "steel",
   rainLayers: 2,
   rainDensity: 0.06,
+  ripple: true,
+  scramble: true,
+  tickPulse: true,
+  embers: false,
+  snow: false,
+  cursorTrail: false,
 };
 
 interface Props {
@@ -143,6 +161,95 @@ function Toggle({
     </button>
   );
 }
+
+function MiniToggle({
+  on,
+  onToggle,
+  label,
+  icon,
+}: {
+  on: boolean;
+  onToggle: () => void;
+  label: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      title={label}
+      onClick={onToggle}
+      className={[
+        "flex items-center gap-2 rounded-md border px-2.5 py-2 text-left transition-all",
+        on
+          ? "border-flare/60 bg-flare/10 shadow-[0_0_16px_rgba(245,154,35,0.1)]"
+          : "border-line bg-deep hover:border-linehi",
+      ].join(" ")}
+    >
+      <span className={["shrink-0", on ? "text-ember" : "text-dim"].join(" ")}>
+        {icon}
+      </span>
+      <span
+        className={[
+          "flex-1 text-[11px] leading-tight font-medium",
+          on ? "text-ink" : "text-fog",
+        ].join(" ")}
+      >
+        {label}
+      </span>
+      <span
+        className={[
+          "h-1.5 w-1.5 shrink-0 rounded-full transition-colors",
+          on ? "bg-ember shadow-[0_0_8px_rgba(245,154,35,0.9)]" : "bg-dim/40",
+        ].join(" ")}
+      />
+    </button>
+  );
+}
+
+const fxIcon = {
+  glitch: (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" {...stroke}>
+      <path d="M3 12h4l2-5 3.5 10 2-5H21" />
+    </svg>
+  ),
+  pulse: (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" {...stroke}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 3a9 9 0 0 1 9 9M12 21a9 9 0 0 1-9-9" />
+    </svg>
+  ),
+  ripple: (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" {...stroke}>
+      <circle cx="12" cy="12" r="2.5" />
+      <circle cx="12" cy="12" r="6.5" strokeDasharray="3 4" />
+      <circle cx="12" cy="12" r="10" strokeDasharray="2 5" opacity="0.6" />
+    </svg>
+  ),
+  scramble: (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" {...stroke}>
+      <path d="M9 4 7 20M17 4l-2 16M4 9h16M4 15h16" />
+    </svg>
+  ),
+  embers: (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" {...stroke}>
+      <path d="M12 3c.8 3.2-3.5 4.6-3.5 8.4a3.9 3.9 0 0 0 7.8 0c0-1.6-.7-2.8-1.5-3.9-.3 1.2-1.8 1.6-1.8.1C13 6.1 13.9 4.6 12 3Z" />
+      <path d="M8 21h8" />
+    </svg>
+  ),
+  snow: (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" {...stroke}>
+      <path d="M12 3v18M4.5 7.5l15 9M19.5 7.5l-15 9" />
+    </svg>
+  ),
+  trail: (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" {...stroke}>
+      <path d="M5 4l6.5 15 2-6.5L20 10.5 5 4Z" />
+      <path d="M3 17h3M4 21h5" opacity="0.6" />
+    </svg>
+  ),
+};
 
 const SPACINGS: { id: TimerSettings["spacing"]; label: string; ls: string }[] = [
   { id: "tight", label: "Узкий", ls: "-0.03em" },
@@ -350,14 +457,56 @@ export function SettingsPanel({
                 </div>
               </Row>
 
-              <div className="space-y-2">
-                <SectionLabel>Эффекты</SectionLabel>
-                <Toggle
-                  on={settings.glitch}
-                  onChange={(v) => onPatch({ glitch: v })}
-                  label="Глитч-сбои"
-                  hint="помехи, RGB-расщепление и VHS-полоса"
-                />
+              <div>
+                <div className="mb-2">
+                  <SectionLabel>Эффекты</SectionLabel>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <MiniToggle
+                    on={settings.glitch}
+                    onToggle={() => onPatch({ glitch: !settings.glitch })}
+                    label="Глитч-сбои"
+                    icon={fxIcon.glitch}
+                  />
+                  <MiniToggle
+                    on={settings.tickPulse}
+                    onToggle={() => onPatch({ tickPulse: !settings.tickPulse })}
+                    label="Пульс секунд"
+                    icon={fxIcon.pulse}
+                  />
+                  <MiniToggle
+                    on={settings.ripple}
+                    onToggle={() => onPatch({ ripple: !settings.ripple })}
+                    label="Рябь кликов"
+                    icon={fxIcon.ripple}
+                  />
+                  <MiniToggle
+                    on={settings.scramble}
+                    onToggle={() => onPatch({ scramble: !settings.scramble })}
+                    label="Скрэмбл текста"
+                    icon={fxIcon.scramble}
+                  />
+                  <MiniToggle
+                    on={settings.embers}
+                    onToggle={() => onPatch({ embers: !settings.embers })}
+                    label="Искры"
+                    icon={fxIcon.embers}
+                  />
+                  <MiniToggle
+                    on={settings.snow}
+                    onToggle={() => onPatch({ snow: !settings.snow })}
+                    label="Снег"
+                    icon={fxIcon.snow}
+                  />
+                  <MiniToggle
+                    on={settings.cursorTrail}
+                    onToggle={() =>
+                      onPatch({ cursorTrail: !settings.cursorTrail })
+                    }
+                    label="След курсора"
+                    icon={fxIcon.trail}
+                  />
+                </div>
               </div>
 
               <div className="space-y-4">
