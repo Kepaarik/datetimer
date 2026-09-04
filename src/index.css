@@ -329,6 +329,42 @@ body {
     rgb-flicker 0.9s steps(3, jump-none) infinite;
 }
 
+/* ---------- финальная десятка ---------- */
+.urgent-pulse {
+  animation: urgent-pulse 1s cubic-bezier(0.3, 0, 0.7, 1) infinite;
+}
+
+@keyframes urgent-pulse {
+  0%,
+  30%,
+  100% {
+    transform: scale(1);
+  }
+  10% {
+    transform: scale(1.04);
+  }
+}
+
+.final-shake {
+  animation: final-shake 0.45s steps(2, end) infinite;
+}
+
+@keyframes final-shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-2px, 1px);
+  }
+  50% {
+    transform: translate(2px, -1px);
+  }
+  75% {
+    transform: translate(-1px, -2px);
+  }
+}
+
 /* ---------- finished state ---------- */
 .pulse-ring {
   animation: pulse-ring 1.6s cubic-bezier(0.33, 1, 0.68, 1) infinite;
@@ -632,6 +668,8 @@ html[data-theme="paper"] .noise::after {
   .glitch-bar,
   .glitch-hard,
   .ascii-float,
+  .urgent-pulse,
+  .final-shake,
   .vhs-band {
     animation: none;
   }

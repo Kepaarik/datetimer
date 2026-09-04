@@ -113,6 +113,8 @@ interface TimerDigitsProps {
   minutes: number;
   seconds: number;
   alarm?: boolean;
+  /** последние секунды — цифры краснеют */
+  urgent?: boolean;
   glitching?: boolean;
   glow?: Glow;
   /** CSS-значение font-size, например min(23vw,19vh,10rem) */
@@ -129,6 +131,7 @@ export const TimerDigits = memo(function TimerDigits({
   minutes,
   seconds,
   alarm,
+  urgent,
   glitching,
   glow = "soft",
   fontSize,
@@ -136,6 +139,8 @@ export const TimerDigits = memo(function TimerDigits({
   letterSpacing,
   sizeClass = "",
 }: TimerDigitsProps) {
+  /* финальная десятка подсвечивает цифры как сигнал тревоги */
+  const danger = Boolean(alarm || urgent);
   const units = [
     {
       id: "days",
@@ -191,13 +196,13 @@ export const TimerDigits = memo(function TimerDigits({
     >
       {visible.map((u, i) => (
         <Fragment key={u.id}>
-          {i > 0 && <Colon alarm={alarm} />}
+          {i > 0 && <Colon alarm={danger} />}
           <Unit
             value={u.value}
             minDigits={u.minDigits}
             forms={u.forms}
             valueLabel={u.valueLabel}
-            alarm={alarm}
+            alarm={danger}
             glow={glow}
             tickKey={u.id === "seconds" ? u.value : undefined}
           />

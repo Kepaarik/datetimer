@@ -15,6 +15,10 @@ interface AsciiObjectProps {
   cell?: number;
   opacity?: number;
   className?: string;
+  /** меняющееся значение (секунды) — объект коротко «подпрыгивает» */
+  pulse?: number;
+  /** множитель скорости авторотации, 1 = по умолчанию */
+  speed?: number;
 }
 
 /**
@@ -30,12 +34,25 @@ export function AsciiObject({
   cell = 13,
   opacity = 0.38,
   className,
+  pulse = 0,
+  speed = 1,
 }: AsciiObjectProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const shapeRef = useRef(shape);
   shapeRef.current = shape;
   const colorRef = useRef(color);
   colorRef.current = color;
+  const speedRef = useRef(speed);
+  speedRef.current = speed;
+  /* «подпрыгивание» на тик: импульс затухает в цикле отрисовки */
+  const kickRef = useRef(0);
+  const pulseValRef = useRef(pulse);
+  useEffect(() => {
+    if (pulse !== pulseValRef.current) {
+      pulseValRef.current = pulse;
+      if (pulse >= 0) kickRef.current = 1;
+    }
+  }, [pulse]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -184,6 +201,8 @@ export function AsciiObject({
       const extent =
         s === "cube" ? 1.62 : s === "duck" ? 0.68 : s === "sphere" ? 0.87 : 0.89;
       K1 = (Math.min(cols / 2, rows / 2) * 0.92) / extent;
+      /* лёгкий «вдох» фигуры на каждую смену секунд */
+      K1 *= 1 + 0.06 * kickRef.current;
 
       if (s === "duck") {
         for (let i = 0; i < duckPts.length; i += 6) {
@@ -270,8 +289,10 @@ export function AsciiObject({
       last = t;
       px += (tx - px) * 0.045;
       py += (ty - py) * 0.045;
-      A += dt * 0.55 + py * dt * 0.6;
-      B += dt * 0.38 + px * dt * 0.6;
+      const spd = speedRef.current;
+      A += dt * 0.55 * spd + py * dt * 0.6;
+      B += dt * 0.38 * spd + px * dt * 0.6;
+      kickRef.current *= Math.exp(-dt * 5.5);
       renderFrame();
       raf = requestAnimationFrame(frame);
     };
