@@ -6,6 +6,7 @@ import { TimerDigits, type Glow } from "./components/TimerDigits";
 import { DateMenu } from "./components/DateMenu";
 import { Scramble } from "./components/Scramble";
 import { ParticleFX } from "./components/ParticleFX";
+import { AsciiObject, type AsciiShape } from "./components/AsciiObject";
 import {
   DEFAULT_SETTINGS,
   FONT_OPTIONS,
@@ -57,6 +58,23 @@ const THEME_CONFETTI: Record<ThemeId, string[]> = {
   lagoon: ["#5ee6d0", "#3fd6c0", "#f59a23", "#9fe8dc", "#e6f4f2"],
   paper: ["#d97e0a", "#0fa396", "#141a21", "#a2adb8", "#f6f8fa"],
 };
+
+/* акцент и нейтраль для частиц и ASCII-объекта */
+const THEME_ACCENT: Record<ThemeId, string> = {
+  steel: "#f59a23",
+  ember: "#ff9a23",
+  lagoon: "#3fd6c0",
+  paper: "#d97e0a",
+};
+
+const THEME_NEUTRAL: Record<ThemeId, string> = {
+  steel: "#9aa6b1",
+  ember: "#cdb49a",
+  lagoon: "#8fb8b2",
+  paper: "#4e5a66",
+};
+
+const ASCII_SHAPES: AsciiShape[] = ["torus", "sphere", "cube"];
 
 function playChime() {
   try {
@@ -150,8 +168,16 @@ function loadSettings(): TimerSettings {
       "embers",
       "snow",
       "cursorTrail",
+      "fireflies",
+      "starfield",
+      "meteors",
+      "raindrops",
+      "ascii",
     ] as const) {
       if (typeof merged[k] !== "boolean") merged[k] = DEFAULT_SETTINGS[k];
+    }
+    if (!ASCII_SHAPES.includes(merged.asciiShape)) {
+      merged.asciiShape = DEFAULT_SETTINGS.asciiShape;
     }
     return merged;
   } catch {
@@ -398,6 +424,20 @@ export default function App() {
 
         {/* сцена таймера */}
         <main className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-4">
+          {/* 3D-объект из ASCII-символов за таймером */}
+          {settings.ascii && (
+            <div
+              className="ascii-float pointer-events-none absolute top-1/2 left-1/2 h-[min(82vmin,680px)] w-[min(82vmin,680px)]"
+              style={{ translate: "-50% -50%" }}
+              aria-hidden="true"
+            >
+              <AsciiObject
+                shape={settings.asciiShape}
+                color={THEME_NEUTRAL[settings.theme]}
+              />
+            </div>
+          )}
+
           {/* вращающееся кольцо за цифрами */}
           <div
             className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
@@ -617,6 +657,9 @@ export default function App() {
       settings.glitch,
       settings.tickPulse,
       settings.scramble,
+      settings.ascii,
+      settings.asciiShape,
+      settings.theme,
       bars,
     ],
   );
@@ -641,7 +684,13 @@ export default function App() {
   );
 
   const particlesOn =
-    settings.embers || settings.snow || settings.cursorTrail;
+    settings.embers ||
+    settings.snow ||
+    settings.cursorTrail ||
+    settings.fireflies ||
+    settings.starfield ||
+    settings.meteors ||
+    settings.raindrops;
 
   return (
     <div className="fixed inset-0 overflow-hidden">
@@ -677,8 +726,13 @@ export default function App() {
           embers={settings.embers}
           snow={settings.snow}
           trail={settings.cursorTrail}
+          fireflies={settings.fireflies}
+          stars={settings.starfield}
+          meteors={settings.meteors}
+          rain={settings.raindrops}
           light={settings.theme === "paper"}
-          accent={THEME_GLYPHS[settings.theme].head}
+          accent={THEME_ACCENT[settings.theme]}
+          neutral={THEME_NEUTRAL[settings.theme]}
         />
       )}
 
