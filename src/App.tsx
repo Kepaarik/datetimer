@@ -7,6 +7,7 @@ import { DateMenu } from "./components/DateMenu";
 import { Scramble } from "./components/Scramble";
 import { ParticleFX } from "./components/ParticleFX";
 import { AsciiObject, type AsciiShape } from "./components/AsciiObject";
+import { AsciiModel } from "./components/AsciiModel";
 import {
   DEFAULT_SETTINGS,
   FONT_OPTIONS,
@@ -75,6 +76,13 @@ const THEME_NEUTRAL: Record<ThemeId, string> = {
 };
 
 const ASCII_SHAPES: AsciiShape[] = ["duck", "torus", "sphere", "cube"];
+
+/* классическая утка Khronos (та самая GLB из glTF-демо),
+   два зеркала; если сеть недоступна — процедурный фолбэк */
+const DUCK_URLS = [
+  "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Duck/glTF-Binary/Duck.glb",
+  "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Duck/glTF-Binary/Duck.glb",
+];
 
 function playChime() {
   try {
@@ -183,6 +191,11 @@ function loadSettings(): TimerSettings {
     merged.asciiSize = Number.isFinite(asciiSize)
       ? Math.min(160, Math.max(60, asciiSize))
       : DEFAULT_SETTINGS.asciiSize;
+    const ac = merged.asciiColor;
+    merged.asciiColor =
+      ac === "auto" || (typeof ac === "string" && /^#[0-9a-fA-F]{6}$/.test(ac))
+        ? ac
+        : "auto";
     return merged;
   } catch {
     return DEFAULT_SETTINGS;
@@ -220,6 +233,8 @@ export default function App() {
   const [settings, setSettings] = useState<TimerSettings>(loadSettings);
   const [glitchPulse, setGlitchPulse] = useState(0);
   const [bars, setBars] = useState<GlitchBar[]>([]);
+  /* если GLB не загрузилась — возвращаемся к процедурной утке */
+  const [duckFailed, setDuckFailed] = useState(false);
   const firedRef = useRef(
     stored.current.target !== null && stored.current.target <= Date.now(),
   );
@@ -233,6 +248,11 @@ export default function App() {
     }
     document.documentElement.dataset.theme = settings.theme;
   }, [settings]);
+
+  /* при уходе с утки разрешаем повторную попытку загрузки GLB */
+  useEffect(() => {
+    if (settings.asciiShape !== "duck") setDuckFailed(false);
+  }, [settings.asciiShape]);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 200);
@@ -347,6 +367,10 @@ export default function App() {
   const fontSize = calcFontSize(unitCount, settings.scale);
   const spacing = SPACING_VALUES[settings.spacing];
   const glow: Glow = settings.glow;
+  const objectColor =
+    settings.asciiColor === "auto"
+      ? THEME_NEUTRAL[settings.theme]
+      : settings.asciiColor;
 
   const scene = useMemo(
     () => (
@@ -439,10 +463,19 @@ export default function App() {
               }}
               aria-hidden="true"
             >
-              <AsciiObject
-                shape={settings.asciiShape}
-                color={THEME_NEUTRAL[settings.theme]}
-              />
+              {settings.asciiShape === "duck" && !duckFailed ? (
+                <AsciiModel
+                  sources={DUCK_URLS}
+                  color={objectColor}
+                  className="h-full w-full"
+                  onFail={() => setDuckFailed(true)}
+                />
+              ) : (
+                <AsciiObject
+                  shape={settings.asciiShape}
+                  color={objectColor}
+                />
+              )}
             </div>
           )}
 
@@ -668,7 +701,10 @@ export default function App() {
       settings.ascii,
       settings.asciiShape,
       settings.asciiSize,
+      settings.asciiColor,
       settings.theme,
+      objectColor,
+      duckFailed,
       bars,
     ],
   );
