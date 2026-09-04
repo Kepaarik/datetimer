@@ -72,6 +72,8 @@ export interface TimerSettings {
   asciiShape: AsciiShape;
   /** размер ASCII-объекта в процентах, 60–160 */
   asciiSize: number;
+  /** чёткость сетки ASCII в процентах, 40–160 — плотность и размер символов */
+  asciiSharp: number;
   /** цвет символов объекта: "auto" (нейтраль темы) или #rrggbb */
   asciiColor: string;
 }
@@ -109,6 +111,7 @@ export const DEFAULT_SETTINGS: TimerSettings = {
   ascii: true,
   asciiShape: "duck",
   asciiSize: 100,
+  asciiSharp: 100,
   asciiColor: "auto",
 };
 
@@ -710,6 +713,24 @@ export function SettingsPanel({
                     <div className="mt-1 flex justify-between font-mono text-[9px] text-dim">
                       <span>60%</span>
                       <span>160%</span>
+                    </div>
+                  </Row>
+                  <Row label="Чёткость символов" value={`${settings.asciiSharp}%`}>
+                    <input
+                      type="range"
+                      min={40}
+                      max={160}
+                      step={5}
+                      value={settings.asciiSharp}
+                      onChange={(e) =>
+                        onPatch({ asciiSharp: Number(e.target.value) })
+                      }
+                      className="w-full cursor-pointer"
+                      aria-label="Чёткость ASCII-символов, процентов"
+                    />
+                    <div className="mt-1 flex justify-between font-mono text-[9px] text-dim">
+                      <span>крупное зерно</span>
+                      <span>мелкие детали</span>
                     </div>
                   </Row>
                   <Row label="Цвет объекта">

@@ -191,6 +191,10 @@ function loadSettings(): TimerSettings {
     merged.asciiSize = Number.isFinite(asciiSize)
       ? Math.min(160, Math.max(60, asciiSize))
       : DEFAULT_SETTINGS.asciiSize;
+    const asciiSharp = Number(merged.asciiSharp);
+    merged.asciiSharp = Number.isFinite(asciiSharp)
+      ? Math.min(160, Math.max(40, asciiSharp))
+      : DEFAULT_SETTINGS.asciiSharp;
     const ac = merged.asciiColor;
     merged.asciiColor =
       ac === "auto" || (typeof ac === "string" && /^#[0-9a-fA-F]{6}$/.test(ac))
@@ -371,6 +375,11 @@ export default function App() {
     settings.asciiColor === "auto"
       ? THEME_NEUTRAL[settings.theme]
       : settings.asciiColor;
+  /* чёткость → ячейка сетки: выше процент — мельче символы, плотнее сетка */
+  const asciiCell = Math.min(
+    26,
+    Math.max(5, Math.round((13 * 100) / settings.asciiSharp)),
+  );
 
   const scene = useMemo(
     () => (
@@ -467,6 +476,7 @@ export default function App() {
                 <AsciiModel
                   sources={DUCK_URLS}
                   color={objectColor}
+                  cell={asciiCell}
                   className="h-full w-full"
                   onFail={() => setDuckFailed(true)}
                 />
@@ -474,6 +484,7 @@ export default function App() {
                 <AsciiObject
                   shape={settings.asciiShape}
                   color={objectColor}
+                  cell={asciiCell}
                 />
               )}
             </div>
@@ -704,6 +715,7 @@ export default function App() {
       settings.asciiColor,
       settings.theme,
       objectColor,
+      asciiCell,
       duckFailed,
       bars,
     ],
