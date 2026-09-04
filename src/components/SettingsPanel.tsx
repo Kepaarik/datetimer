@@ -72,7 +72,19 @@ export interface TimerSettings {
   asciiShape: AsciiShape;
   /** размер ASCII-объекта в процентах, 60–160 */
   asciiSize: number;
+  /** цвет символов объекта: "auto" (нейтраль темы) или #rrggbb */
+  asciiColor: string;
 }
+
+export const ASCII_COLORS: { id: string; label: string }[] = [
+  { id: "auto", label: "Из темы" },
+  { id: "#f59a23", label: "Янтарь" },
+  { id: "#3fd6c0", label: "Бирюза" },
+  { id: "#8fd0ff", label: "Небо" },
+  { id: "#ff6b5e", label: "Коралл" },
+  { id: "#c8f169", label: "Лайм" },
+  { id: "#e7ecf1", label: "Белый" },
+];
 
 export const DEFAULT_SETTINGS: TimerSettings = {
   scale: 100,
@@ -97,6 +109,7 @@ export const DEFAULT_SETTINGS: TimerSettings = {
   ascii: true,
   asciiShape: "duck",
   asciiSize: 100,
+  asciiColor: "auto",
 };
 
 export const ASCII_SHAPES: { id: AsciiShape; label: string }[] = [
@@ -697,6 +710,62 @@ export function SettingsPanel({
                     <div className="mt-1 flex justify-between font-mono text-[9px] text-dim">
                       <span>60%</span>
                       <span>160%</span>
+                    </div>
+                  </Row>
+                  <Row label="Цвет объекта">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {ASCII_COLORS.map((c) => {
+                        const active = settings.asciiColor === c.id;
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            title={c.label}
+                            aria-pressed={active}
+                            onClick={() => onPatch({ asciiColor: c.id })}
+                            className={[
+                              "h-7 w-7 rounded-full border transition-all",
+                              active
+                                ? "scale-110 border-ember shadow-[0_0_12px_rgba(245,154,35,0.45)]"
+                                : "border-line hover:scale-105 hover:border-linehi",
+                            ].join(" ")}
+                            style={{
+                              background:
+                                c.id === "auto"
+                                  ? "conic-gradient(from 210deg, #9aa6b1, #f59a23, #3fd6c0, #9aa6b1)"
+                                  : c.id,
+                            }}
+                          />
+                        );
+                      })}
+                      <label
+                        title="Свой цвет"
+                        className={[
+                          "relative h-7 w-7 cursor-pointer overflow-hidden rounded-full border transition-all hover:scale-105",
+                          settings.asciiColor !== "auto" &&
+                          !ASCII_COLORS.some((c) => c.id === settings.asciiColor)
+                            ? "scale-110 border-ember shadow-[0_0_12px_rgba(245,154,35,0.45)]"
+                            : "border-line hover:border-linehi",
+                        ].join(" ")}
+                        style={{
+                          background:
+                            "conic-gradient(from 0deg, #f66, #ff6, #6f6, #6ff, #66f, #f6f, #f66)",
+                        }}
+                      >
+                        <input
+                          type="color"
+                          value={
+                            /^#[0-9a-fA-F]{6}$/.test(settings.asciiColor)
+                              ? settings.asciiColor
+                              : "#9aa6b1"
+                          }
+                          onChange={(e) =>
+                            onPatch({ asciiColor: e.target.value })
+                          }
+                          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                          aria-label="Выбрать свой цвет объекта"
+                        />
+                      </label>
                     </div>
                   </Row>
                 </div>
