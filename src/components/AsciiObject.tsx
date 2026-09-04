@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-export type AsciiShape = "torus" | "sphere" | "cube";
+export type AsciiShape = "duck" | "torus" | "sphere" | "cube";
 
 /** Карта яркости — от почти пустого символа к плотному. */
 const RAMP = ".,-~:;=!*#$@";
@@ -75,6 +75,46 @@ export function AsciiObject({
         if (diff === 1) EDGES.push([i, j]);
       }
 
+    /* утка собирается из эллипсоидов: корпус с ватерлинией,
+       голова, клюв и хвост; нормали — как у эллипсоида */
+    const duckPts: number[] = [];
+    const ellipsoid = (
+      cx0: number,
+      cy0: number,
+      cz0: number,
+      a: number,
+      b: number,
+      c: number,
+      dTh: number,
+      dPh: number,
+      cutY?: number,
+    ) => {
+      for (let th = 0; th < Math.PI; th += dTh) {
+        const st = Math.sin(th);
+        const ct = Math.cos(th);
+        for (let ph = 0; ph < Math.PI * 2; ph += dPh) {
+          const cp = Math.cos(ph);
+          const sp = Math.sin(ph);
+          const x = cx0 + a * st * cp;
+          const y = cy0 + b * ct;
+          const z = cz0 + c * st * sp;
+          if (cutY !== undefined && y < cutY) continue;
+          let nx = (st * cp) / a;
+          let ny = ct / b;
+          let nz = (st * sp) / c;
+          const nl = Math.hypot(nx, ny, nz) || 1;
+          nx /= nl;
+          ny /= nl;
+          nz /= nl;
+          duckPts.push(x, y, z, nx, ny, nz);
+        }
+      }
+    };
+    ellipsoid(-0.15, -0.45, 0, 1.5, 1.05, 1.2, 0.085, 0.042, -0.98); // корпус
+    ellipsoid(0.95, 0.95, 0, 0.68, 0.68, 0.68, 0.1, 0.05); // голова
+    ellipsoid(1.62, 0.78, 0, 0.42, 0.19, 0.27, 0.17, 0.1); // клюв
+    ellipsoid(-1.32, 0.22, 0, 0.4, 0.48, 0.3, 0.2, 0.12); // хвост
+
     const K2 = 5.6;
     const K1 = (cols * K2 * 3) / 24;
     const cx = cols / 2;
@@ -137,7 +177,17 @@ export function AsciiObject({
 
       const s = shapeRef.current;
 
-      if (s === "torus") {
+      if (s === "duck") {
+        for (let i = 0; i < duckPts.length; i += 6) {
+          const [X, Y, Z] = rot(duckPts[i], duckPts[i + 1], duckPts[i + 2]);
+          const [, NY, NZ] = rot(
+            duckPts[i + 3],
+            duckPts[i + 4],
+            duckPts[i + 5],
+          );
+          plot(X, Y, Z, light(NY, NZ));
+        }
+      } else if (s === "torus") {
         const R1 = 1;
         const R2 = 2.1;
         for (let th = 0; th < Math.PI * 2; th += 0.07) {
