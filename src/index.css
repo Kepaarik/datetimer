@@ -455,6 +455,22 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   }
 }
 
+/* лёгкое парение ASCII-объекта (центрирование — инлайновым translate) */
+.ascii-float {
+  animation: ascii-float 11s ease-in-out infinite alternate;
+}
+
+@keyframes ascii-float {
+  from {
+    translate: -50% -52%;
+    scale: 0.985;
+  }
+  to {
+    translate: -50% -48%;
+    scale: 1.015;
+  }
+}
+
 .spin-slow {
   animation: spin 14s linear infinite;
 }
@@ -615,6 +631,7 @@ html[data-theme="paper"] .noise::after {
   .glitching .digit-roll,
   .glitch-bar,
   .glitch-hard,
+  .ascii-float,
   .vhs-band {
     animation: none;
   }

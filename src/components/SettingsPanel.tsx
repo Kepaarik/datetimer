@@ -1,6 +1,7 @@
 import { useEffect, type CSSProperties } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Glow } from "./TimerDigits";
+import type { AsciiShape } from "./AsciiObject";
 
 export type ThemeId = "steel" | "ember" | "lagoon" | "paper";
 
@@ -58,6 +59,17 @@ export interface TimerSettings {
   snow: boolean;
   /** затухающий след за курсором */
   cursorTrail: boolean;
+  /** блуждающие мерцающие огоньки */
+  fireflies: boolean;
+  /** мерцающие звёзды с параллаксом */
+  starfield: boolean;
+  /** периодические падающие метеоры */
+  meteors: boolean;
+  /** косой ливень */
+  raindrops: boolean;
+  /** вращающийся 3D-объект из ASCII-символов */
+  ascii: boolean;
+  asciiShape: AsciiShape;
 }
 
 export const DEFAULT_SETTINGS: TimerSettings = {
@@ -76,7 +88,19 @@ export const DEFAULT_SETTINGS: TimerSettings = {
   embers: false,
   snow: false,
   cursorTrail: false,
+  fireflies: false,
+  starfield: false,
+  meteors: false,
+  raindrops: false,
+  ascii: true,
+  asciiShape: "torus",
 };
+
+export const ASCII_SHAPES: { id: AsciiShape; label: string }[] = [
+  { id: "torus", label: "Донат" },
+  { id: "sphere", label: "Сфера" },
+  { id: "cube", label: "Куб" },
+];
 
 interface Props {
   open: boolean;
@@ -247,6 +271,37 @@ const fxIcon = {
     <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" {...stroke}>
       <path d="M5 4l6.5 15 2-6.5L20 10.5 5 4Z" />
       <path d="M3 17h3M4 21h5" opacity="0.6" />
+    </svg>
+  ),
+  firefly: (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" {...stroke}>
+      <circle cx="12" cy="12" r="2.5" />
+      <path d="M12 5v2M12 17v2M5 12h2M17 12h2M7 7l1.4 1.4M15.6 15.6 17 17M17 7l-1.4 1.4M8.4 15.6 7 17" opacity="0.7" />
+    </svg>
+  ),
+  star: (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" {...stroke}>
+      <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z" />
+      <path d="M19 17l.8 2.2L22 20l-2.2.8L19 23l-.8-2.2L16 20l2.2-.8L19 17Z" opacity="0.6" />
+    </svg>
+  ),
+  meteor: (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" {...stroke}>
+      <path d="M21 3 9.5 14.5" />
+      <path d="M17.5 3.5 13 8M20.5 7 16 11.5" opacity="0.6" />
+      <circle cx="7.5" cy="16.5" r="4" />
+    </svg>
+  ),
+  raindrop: (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" {...stroke}>
+      <path d="M8 3 5 10M14 3l-3 7M20 3l-3 7M10 12l-3 7M16 12l-3 7M22 12l-3 7" />
+    </svg>
+  ),
+  ascii: (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" {...stroke}>
+      <ellipse cx="12" cy="12" rx="9" ry="4.5" />
+      <ellipse cx="12" cy="12" rx="9" ry="4.5" transform="rotate(60 12 12)" opacity="0.55" />
+      <circle cx="12" cy="12" r="1.2" />
     </svg>
   ),
 };
@@ -506,6 +561,30 @@ export function SettingsPanel({
                     label="След курсора"
                     icon={fxIcon.trail}
                   />
+                  <MiniToggle
+                    on={settings.fireflies}
+                    onToggle={() => onPatch({ fireflies: !settings.fireflies })}
+                    label="Огоньки"
+                    icon={fxIcon.firefly}
+                  />
+                  <MiniToggle
+                    on={settings.starfield}
+                    onToggle={() => onPatch({ starfield: !settings.starfield })}
+                    label="Звёзды"
+                    icon={fxIcon.star}
+                  />
+                  <MiniToggle
+                    on={settings.meteors}
+                    onToggle={() => onPatch({ meteors: !settings.meteors })}
+                    label="Метеоры"
+                    icon={fxIcon.meteor}
+                  />
+                  <MiniToggle
+                    on={settings.raindrops}
+                    onToggle={() => onPatch({ raindrops: !settings.raindrops })}
+                    label="Дождь"
+                    icon={fxIcon.raindrop}
+                  />
                 </div>
               </div>
 
@@ -564,6 +643,38 @@ export function SettingsPanel({
                     <div className="mt-1 flex justify-between font-mono text-[9px] text-dim">
                       <span>редко</span>
                       <span>густо</span>
+                    </div>
+                  </Row>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <SectionLabel>ASCII-объект</SectionLabel>
+                <Toggle
+                  on={settings.ascii}
+                  onChange={(v) => onPatch({ ascii: v })}
+                  label="3D-фигура из символов"
+                  hint="вращается за таймером, реагирует на курсор"
+                />
+                <div
+                  className={[
+                    "transition-opacity duration-200",
+                    settings.ascii ? "opacity-100" : "pointer-events-none opacity-35",
+                  ].join(" ")}
+                >
+                  <Row label="Форма">
+                    <div className="flex gap-1.5">
+                      {ASCII_SHAPES.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          aria-pressed={settings.asciiShape === s.id}
+                          onClick={() => onPatch({ asciiShape: s.id })}
+                          className={seg(settings.asciiShape === s.id)}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
                     </div>
                   </Row>
                 </div>
