@@ -74,7 +74,7 @@ const THEME_NEUTRAL: Record<ThemeId, string> = {
   paper: "#4e5a66",
 };
 
-const ASCII_SHAPES: AsciiShape[] = ["torus", "sphere", "cube"];
+const ASCII_SHAPES: AsciiShape[] = ["duck", "torus", "sphere", "cube"];
 
 function playChime() {
   try {
@@ -179,6 +179,10 @@ function loadSettings(): TimerSettings {
     if (!ASCII_SHAPES.includes(merged.asciiShape)) {
       merged.asciiShape = DEFAULT_SETTINGS.asciiShape;
     }
+    const asciiSize = Number(merged.asciiSize);
+    merged.asciiSize = Number.isFinite(asciiSize)
+      ? Math.min(160, Math.max(60, asciiSize))
+      : DEFAULT_SETTINGS.asciiSize;
     return merged;
   } catch {
     return DEFAULT_SETTINGS;
@@ -427,8 +431,12 @@ export default function App() {
           {/* 3D-объект из ASCII-символов за таймером */}
           {settings.ascii && (
             <div
-              className="ascii-float pointer-events-none absolute top-1/2 left-1/2 h-[min(82vmin,680px)] w-[min(82vmin,680px)]"
-              style={{ translate: "-50% -50%" }}
+              className="ascii-float pointer-events-none absolute top-1/2 left-1/2"
+              style={{
+                translate: "-50% -50%",
+                width: `calc(min(82vmin, 680px) * ${settings.asciiSize / 100})`,
+                height: `calc(min(82vmin, 680px) * ${settings.asciiSize / 100})`,
+              }}
               aria-hidden="true"
             >
               <AsciiObject
@@ -659,6 +667,7 @@ export default function App() {
       settings.scramble,
       settings.ascii,
       settings.asciiShape,
+      settings.asciiSize,
       settings.theme,
       bars,
     ],

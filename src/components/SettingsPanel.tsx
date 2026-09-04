@@ -70,6 +70,8 @@ export interface TimerSettings {
   /** вращающийся 3D-объект из ASCII-символов */
   ascii: boolean;
   asciiShape: AsciiShape;
+  /** размер ASCII-объекта в процентах, 60–160 */
+  asciiSize: number;
 }
 
 export const DEFAULT_SETTINGS: TimerSettings = {
@@ -93,10 +95,12 @@ export const DEFAULT_SETTINGS: TimerSettings = {
   meteors: false,
   raindrops: false,
   ascii: true,
-  asciiShape: "torus",
+  asciiShape: "duck",
+  asciiSize: 100,
 };
 
 export const ASCII_SHAPES: { id: AsciiShape; label: string }[] = [
+  { id: "duck", label: "Утка" },
   { id: "torus", label: "Донат" },
   { id: "sphere", label: "Сфера" },
   { id: "cube", label: "Куб" },
@@ -658,12 +662,12 @@ export function SettingsPanel({
                 />
                 <div
                   className={[
-                    "transition-opacity duration-200",
+                    "space-y-4 transition-opacity duration-200",
                     settings.ascii ? "opacity-100" : "pointer-events-none opacity-35",
                   ].join(" ")}
                 >
                   <Row label="Форма">
-                    <div className="flex gap-1.5">
+                    <div className="grid grid-cols-4 gap-1.5">
                       {ASCII_SHAPES.map((s) => (
                         <button
                           key={s.id}
@@ -675,6 +679,24 @@ export function SettingsPanel({
                           {s.label}
                         </button>
                       ))}
+                    </div>
+                  </Row>
+                  <Row label="Размер объекта" value={`${settings.asciiSize}%`}>
+                    <input
+                      type="range"
+                      min={60}
+                      max={160}
+                      step={5}
+                      value={settings.asciiSize}
+                      onChange={(e) =>
+                        onPatch({ asciiSize: Number(e.target.value) })
+                      }
+                      className="w-full cursor-pointer"
+                      aria-label="Размер ASCII-объекта, процентов"
+                    />
+                    <div className="mt-1 flex justify-between font-mono text-[9px] text-dim">
+                      <span>60%</span>
+                      <span>160%</span>
                     </div>
                   </Row>
                 </div>
