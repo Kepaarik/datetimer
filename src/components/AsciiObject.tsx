@@ -116,7 +116,7 @@ export function AsciiObject({
     ellipsoid(-1.32, 0.22, 0, 0.4, 0.48, 0.3, 0.2, 0.12); // хвост
 
     const K2 = 5.6;
-    const K1 = (cols * K2 * 3) / 24;
+    let K1 = (cols * K2 * 3) / 24;
     const cx = cols / 2;
     const cy = rows / 2;
 
@@ -176,6 +176,14 @@ export function AsciiObject({
       lum.fill(0);
 
       const s = shapeRef.current;
+
+      /* вписываем проекцию в сетку по обеим осям: максимальный
+         «радиус» фигуры в единицах K1 известен заранее, поэтому
+         K1 подбирается под меньшую полуось — без этого фигуры
+         обрезались сверху и снизу */
+      const extent =
+        s === "cube" ? 1.62 : s === "duck" ? 0.68 : s === "sphere" ? 0.87 : 0.89;
+      K1 = (Math.min(cols / 2, rows / 2) * 0.92) / extent;
 
       if (s === "duck") {
         for (let i = 0; i < duckPts.length; i += 6) {
